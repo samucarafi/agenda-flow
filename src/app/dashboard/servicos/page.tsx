@@ -6,10 +6,8 @@ import { ServicesPage } from "@/components/dashboard/ServicesPage";
 export default async function Page() {
   await connectToDatabase();
 
-  const services = await Service.find({
-    active: true,
-  })
-    .sort({ createdAt: -1 })
+  const services = await Service.find()
+    .sort({ active: -1, createdAt: -1 })
     .lean();
 
   const serializedServices = services.map((service) => ({

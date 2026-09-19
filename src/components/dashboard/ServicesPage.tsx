@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { FiClock, FiEdit2, FiPlus, FiSearch, FiTrash2 } from "react-icons/fi";
 import { DashboardLayout } from "./DashboardLayout";
-import { deleteService } from "@/actions/services";
+import { deleteService, restoreService } from "@/actions/services";
 import { ServiceModal } from "./ServiceModal";
 
 type ServiceData = {
@@ -29,6 +29,10 @@ export function ServicesPage({ services: initialServices }: ServicesPageProps) {
     null,
   );
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "active" | "inactive"
+  >("all");
+
   async function handleDelete(service: ServiceData) {
     const confirmed = window.confirm(
       `Deseja realmente desativar o serviço "${service.name}"?`,
@@ -50,8 +54,34 @@ export function ServicesPage({ services: initialServices }: ServicesPageProps) {
       }
 
       setServices((currentServices) =>
-        currentServices.filter(
-          (currentService) => currentService._id !== service._id,
+        currentServices.map((currentService) =>
+          currentService._id === service._id
+            ? { ...currentService, active: false }
+            : currentService,
+        ),
+      );
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  async function handleRestore(service: ServiceData) {
+    try {
+      setDeletingId(service._id);
+
+      const result = await restoreService(service._id);
+
+      if (!result.success) {
+        window.alert(result.error ?? "Não foi possível reativar o serviço.");
+
+        return;
+      }
+
+      setServices((currentServices) =>
+        currentServices.map((currentService) =>
+          currentService._id === service._id
+            ? { ...currentService, active: true }
+            : currentService,
         ),
       );
     } finally {
@@ -62,16 +92,20 @@ export function ServicesPage({ services: initialServices }: ServicesPageProps) {
   const filteredServices = useMemo(() => {
     const term = search.toLowerCase().trim();
 
-    if (!term) {
-      return services;
-    }
+    return services.filter((service) => {
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "active" && service.active) ||
+        (statusFilter === "inactive" && !service.active);
 
-    return services.filter(
-      (service) =>
+      const matchesSearch =
+        !term ||
         service.name.toLowerCase().includes(term) ||
-        service.description.toLowerCase().includes(term),
-    );
-  }, [services, search]);
+        service.description.toLowerCase().includes(term);
+
+      return matchesStatus && matchesSearch;
+    });
+  }, [services, search, statusFilter]);
 
   function handleServiceSaved(service: ServiceData) {
     setServices((currentServices) => {
@@ -118,6 +152,30 @@ export function ServicesPage({ services: initialServices }: ServicesPageProps) {
             </div>
 
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              <div className="flex h-10 rounded-xl border border-zinc-200 bg-zinc-50 p-1">
+                {[
+                  { value: "all", label: "Todos" },
+                  { value: "active", label: "Ativos" },
+                  { value: "inactive", label: "Inativos" },
+                ].map((filter) => (
+                  <button
+                    key={filter.value}
+                    type="button"
+                    onClick={() =>
+                      setStatusFilter(
+                        filter.value as "all" | "active" | "inactive",
+                      )
+                    }
+                    className={`rounded-lg px-3 text-[11px] font-medium transition ${
+                      statusFilter === filter.value
+                        ? "bg-white text-zinc-800 shadow-sm"
+                        : "text-zinc-400 hover:text-zinc-600"
+                    }`}
+                  >
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
               <div className="relative w-full sm:w-56">
                 <FiSearch
                   size={14}
@@ -206,19 +264,31 @@ export function ServicesPage({ services: initialServices }: ServicesPageProps) {
                       <FiEdit2 size={14} />
                     </button>
 
-                    <button
-                      type="button"
-                      aria-label={`Excluir ${service.name}`}
-                      onClick={() => handleDelete(service)}
-                      disabled={deletingId === service._id}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {deletingId === service._id ? (
-                        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-zinc-300 border-t-red-500" />
-                      ) : (
-                        <FiTrash2 size={14} />
-                      )}
-                    </button>
+                    {service.active ? (
+                      <button
+                        type="button"
+                        aria-label={`Desativar ${service.name}`}
+                        onClick={() => handleDelete(service)}
+                        disabled={deletingId === service._id}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {deletingId === service._id ? (
+                          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-zinc-300 border-t-red-500" />
+                        ) : (
+                          <FiTrash2 size={14} />
+                        )}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        aria-label={`Reativar ${service.name}`}
+                        onClick={() => handleRestore(service)}
+                        disabled={deletingId === service._id}
+                        className="flex h-8 items-center justify-center rounded-lg px-2 text-[10px] font-medium text-emerald-600 transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {deletingId === service._id ? "..." : "Reativar"}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

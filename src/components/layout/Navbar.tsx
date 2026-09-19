@@ -48,7 +48,7 @@ export function Navbar() {
 
           <div className="hidden items-center gap-3 md:flex">
             <Link
-              href="/login"
+              href="/entrar"
               className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-950"
             >
               Entrar
@@ -103,7 +103,7 @@ export function Navbar() {
               <div className="my-2 h-px bg-zinc-100" />
 
               <Link
-                href="/login"
+                href="/entrar"
                 onClick={() => setIsOpen(false)}
                 className="rounded-xl px-3 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
               >

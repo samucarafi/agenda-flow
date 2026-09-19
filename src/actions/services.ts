@@ -194,3 +194,43 @@ export async function deleteService(serviceId: string): Promise<{
     };
   }
 }
+
+export async function restoreService(serviceId: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    await connectToDatabase();
+
+    const service = await Service.findByIdAndUpdate(
+      serviceId,
+      {
+        active: true,
+      },
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
+
+    if (!service) {
+      return {
+        success: false,
+        error: "Serviço não encontrado.",
+      };
+    }
+
+    revalidatePath("/dashboard/servicos");
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error("Erro ao reativar serviço:", error);
+
+    return {
+      success: false,
+      error: "Não foi possível reativar o serviço.",
+    };
+  }
+}

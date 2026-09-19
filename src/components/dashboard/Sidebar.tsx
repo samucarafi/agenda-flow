@@ -6,13 +6,13 @@ import { useState } from "react";
 import {
   FiCalendar,
   FiGrid,
-  FiLogOut,
   FiMenu,
   FiSettings,
   FiUsers,
   FiScissors,
   FiX,
 } from "react-icons/fi";
+import { LogoutButton } from "../auth/LogoutButton";
 
 const navigation = [
   {
@@ -42,7 +42,14 @@ const navigation = [
   },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  user: {
+    name: string;
+    email: string;
+  };
+}
+
+export function Sidebar({ user }: SidebarProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -115,22 +122,25 @@ export function Sidebar() {
         </div>
 
         <div className="border-t border-zinc-100 p-3">
-          <div className="flex items-center gap-3 rounded-xl p-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-100 text-xs font-semibold text-zinc-600">
-              SA
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#635bff]/10 text-xs font-semibold text-[#635bff]">
+              {user.name
+                .split(" ")
+                .map((part) => part[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase()}
             </div>
 
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-semibold text-zinc-800">
-                Samuel Alves
+                {user.name}
               </p>
 
-              <p className="truncate text-[10px] text-zinc-400">
-                Administrador
-              </p>
+              <p className="truncate text-[10px] text-zinc-400">{user.email}</p>
             </div>
 
-            <FiLogOut size={15} className="text-zinc-300" />
+            <LogoutButton />
           </div>
         </div>
       </aside>

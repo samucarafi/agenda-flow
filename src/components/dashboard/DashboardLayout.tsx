@@ -2,19 +2,24 @@ import { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 
 interface DashboardLayoutProps {
-  children: ReactNode;
+  children: React.ReactNode;
   title: string;
-  description: string;
+  description?: string;
+  user: {
+    name: string;
+    email: string;
+  };
 }
 
 export function DashboardLayout({
   children,
   title,
   description,
+  user,
 }: DashboardLayoutProps) {
   return (
     <div className="flex min-h-screen bg-[#f6f7fb]">
-      <Sidebar />
+      <Sidebar user={user} />
 
       <main className="min-w-0 flex-1">
         <header className="border-b border-zinc-200 bg-white">
