@@ -1,12 +1,20 @@
+import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Client } from "@/models/Client";
 
 import { ClientsPage } from "@/components/dashboard/ClientsPage";
 
 export default async function Page() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return null;
+  }
+
   await connectToDatabase();
 
   const clients = await Client.find({
+    userId: user.id,
     active: true,
   })
     .sort({ createdAt: -1 })

@@ -1,22 +1,21 @@
-import { ReactNode } from "react";
+"use client";
+
 import { Sidebar } from "./Sidebar";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
   title: string;
   description?: string;
-  user: {
-    name: string;
-    email: string;
-  };
 }
 
 export function DashboardLayout({
   children,
   title,
   description,
-  user,
 }: DashboardLayoutProps) {
+  const user = useAuth();
+
   return (
     <div className="flex min-h-screen bg-[#f6f7fb]">
       <Sidebar user={user} />
@@ -27,7 +26,9 @@ export function DashboardLayout({
             <div>
               <h1 className="text-sm font-semibold text-zinc-900">{title}</h1>
 
-              <p className="mt-0.5 text-xs text-zinc-400">{description}</p>
+              {description && (
+                <p className="mt-0.5 text-xs text-zinc-400">{description}</p>
+              )}
             </div>
           </div>
         </header>

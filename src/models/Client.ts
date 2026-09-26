@@ -2,6 +2,13 @@ import mongoose, { Schema, models } from "mongoose";
 
 const ClientSchema = new Schema(
   {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+
     name: {
       type: String,
       required: true,
@@ -34,5 +41,7 @@ const ClientSchema = new Schema(
     timestamps: true,
   },
 );
+
+ClientSchema.index({ userId: 1, email: 1 }, { unique: true });
 
 export const Client = models.Client || mongoose.model("Client", ClientSchema);

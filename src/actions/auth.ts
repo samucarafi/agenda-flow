@@ -1,148 +1,136 @@
 "use server";
 
 import bcrypt from "bcryptjs";
+import { z } from "zod";
+import { redirect } from "next/navigation";
 
-import { connectToDatabase } from "@/lib/mongodb";
 import User from "@/models/User";
-import { setSessionCookie } from "@/lib/auth";
+import { connectToDatabase } from "@/lib/mongodb";
 import { createSession } from "@/lib/session";
-import { clearSession } from "@/lib/auth";
+import { clearSession, setSessionCookie } from "@/lib/auth";
 
-export type CreateUserState = {
-  success: boolean;
-  error?: string;
-};
+const loginSchema = z.object({
+  email: z.string().trim().email("Informe um e-mail válido."),
+  password: z.string().min(1, "Informe sua senha."),
+});
 
-export async function createUser(
-  _previousState: CreateUserState,
-  formData: FormData,
-): Promise<CreateUserState> {
-  const name = String(formData.get("name") ?? "").trim();
-  const email = String(formData.get("email") ?? "")
+const registerSchema = z.object({
+  name: z
+    .string()
     .trim()
-    .toLowerCase();
-  const password = String(formData.get("password") ?? "");
+    .min(2, "Informe seu nome.")
+    .max(100, "O nome é muito longo."),
 
-  if (name.length < 2) {
-    return {
-      success: false,
-      error: "Informe um nome válido.",
-    };
-  }
+  email: z.string().trim().email("Informe um e-mail válido."),
 
-  if (!email.includes("@")) {
-    return {
-      success: false,
-      error: "Informe um e-mail válido.",
-    };
-  }
+  password: z
+    .string()
+    .min(6, "A senha deve ter pelo menos 6 caracteres.")
+    .max(100, "A senha é muito longa."),
+});
 
-  if (password.length < 8) {
-    return {
-      success: false,
-      error: "A senha deve ter pelo menos 8 caracteres.",
-    };
-  }
-
-  try {
-    await connectToDatabase();
-
-    const existingUser = await User.findOne({
-      email,
-    });
-
-    if (existingUser) {
-      return {
-        success: false,
-        error: "Já existe um usuário com este e-mail.",
-      };
-    }
-
-    const passwordHash = await bcrypt.hash(password, 12);
-
-    await User.create({
-      name,
-      email,
-      passwordHash,
-      active: true,
-    });
-
-    return {
-      success: true,
-    };
-  } catch (error) {
-    console.error("Erro ao criar usuário:", error);
-
-    return {
-      success: false,
-      error: "Não foi possível criar o usuário.",
-    };
-  }
-}
-
-export type LoginState = {
+export type AuthState = {
   success: boolean;
   error?: string;
 };
 
 export async function login(
-  _previousState: LoginState,
+  _previousState: AuthState,
   formData: FormData,
-): Promise<LoginState> {
-  const email = String(formData.get("email") ?? "")
-    .trim()
-    .toLowerCase();
+): Promise<AuthState> {
+  const parsed = loginSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
 
-  const password = String(formData.get("password") ?? "");
-
-  if (!email || !password) {
+  if (!parsed.success) {
     return {
       success: false,
-      error: "Informe seu e-mail e sua senha.",
+      error: parsed.error.issues[0]?.message ?? "Dados inválidos.",
     };
   }
 
-  try {
-    await connectToDatabase();
+  await connectToDatabase();
 
-    const user = await User.findOne({
-      email,
-      active: true,
-    }).select("+passwordHash");
+  const user = await User.findOne({
+    email: parsed.data.email.toLowerCase(),
+    active: true,
+  }).select("+passwordHash");
 
-    if (!user) {
-      return {
-        success: false,
-        error: "E-mail ou senha inválidos.",
-      };
-    }
-
-    const passwordMatches = await bcrypt.compare(password, user.passwordHash);
-
-    if (!passwordMatches) {
-      return {
-        success: false,
-        error: "E-mail ou senha inválidos.",
-      };
-    }
-
-    const token = await createSession(user._id.toString());
-
-    await setSessionCookie(token);
-
-    return {
-      success: true,
-    };
-  } catch (error) {
-    console.error("Erro ao realizar login:", error);
-
+  if (!user) {
     return {
       success: false,
-      error: "Não foi possível realizar o login.",
+      error: "E-mail ou senha inválidos.",
     };
   }
+
+  const passwordMatches = await bcrypt.compare(
+    parsed.data.password,
+    user.passwordHash,
+  );
+
+  if (!passwordMatches) {
+    return {
+      success: false,
+      error: "E-mail ou senha inválidos.",
+    };
+  }
+
+  const token = await createSession(user._id.toString());
+
+  await setSessionCookie(token);
+
+  return {
+    success: true,
+  };
+}
+
+export async function register(
+  _previousState: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  const parsed = registerSchema.safeParse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Dados inválidos.",
+    };
+  }
+
+  await connectToDatabase();
+
+  const email = parsed.data.email.toLowerCase();
+
+  const existingUser = await User.findOne({ email });
+
+  if (existingUser) {
+    return {
+      success: false,
+      error: "Já existe uma conta com este e-mail.",
+    };
+  }
+
+  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+
+  await User.create({
+    name: parsed.data.name,
+    email,
+    passwordHash,
+    active: true,
+  });
+
+  return {
+    success: true,
+  };
 }
 
 export async function logout() {
   await clearSession();
+
+  redirect("/entrar");
 }

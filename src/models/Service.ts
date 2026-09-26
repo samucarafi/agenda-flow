@@ -1,6 +1,7 @@
 import mongoose, { Schema, models } from "mongoose";
 
 export interface IService {
+  userId: mongoose.Types.ObjectId;
   name: string;
   description?: string;
   duration: number;
@@ -12,6 +13,13 @@ export interface IService {
 
 const serviceSchema = new Schema<IService>(
   {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+
     name: {
       type: String,
       required: true,
@@ -47,6 +55,8 @@ const serviceSchema = new Schema<IService>(
     timestamps: true,
   },
 );
+
+serviceSchema.index({ userId: 1, name: 1 }, { unique: true });
 
 export const Service =
   models.Service || mongoose.model<IService>("Service", serviceSchema);

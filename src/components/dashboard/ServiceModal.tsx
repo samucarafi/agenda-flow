@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { FiCheck, FiClock, FiLoader, FiX } from "react-icons/fi";
 
 import {
@@ -16,10 +16,6 @@ interface ServiceModalProps {
   service?: NonNullable<CreateServiceState["service"]> | null;
 }
 
-const initialState: CreateServiceState = {
-  success: false,
-};
-
 export function ServiceModal({
   open,
   onClose,
@@ -30,33 +26,46 @@ export function ServiceModal({
 
   const formRef = useRef<HTMLFormElement>(null);
 
-  const [state, formAction, pending] = useActionState(
-    saveService,
-    initialState,
-  );
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
 
-  useEffect(() => {
-    if (!state.success || !state.service) {
-      return;
+    setError("");
+    setPending(true);
+
+    try {
+      const formData = new FormData(event.currentTarget);
+
+      const serviceId = formData.get("serviceId");
+
+      const result =
+        typeof serviceId === "string" && serviceId
+          ? await updateService(serviceId, formData)
+          : await createService(
+              {
+                success: false,
+              },
+              formData,
+            );
+
+      if (!result.success || !result.service) {
+        setError(result.error ?? "Não foi possível salvar o serviço.");
+
+        return;
+      }
+
+      formRef.current?.reset();
+
+      onCreated(result.service);
+      onClose();
+    } catch (error) {
+      console.error(error);
+
+      setError("Ocorreu um erro ao salvar o serviço.");
+    } finally {
+      setPending(false);
     }
-
-    formRef.current?.reset();
-
-    onCreated(state.service);
-    onClose();
-  }, [state.success, state.service, onCreated, onClose]);
-
-  async function saveService(
-    previousState: CreateServiceState,
-    formData: FormData,
-  ): Promise<CreateServiceState> {
-    const serviceId = formData.get("serviceId");
-
-    if (typeof serviceId === "string" && serviceId) {
-      return updateService(serviceId, formData);
-    }
-
-    return createService(previousState, formData);
   }
 
   function handleClose() {
@@ -105,7 +114,7 @@ export function ServiceModal({
           </button>
         </div>
 
-        <form ref={formRef} action={formAction} className="space-y-4 p-5">
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-4 p-5">
           <div>
             <label
               htmlFor="service-name"
@@ -214,12 +223,12 @@ export function ServiceModal({
             </div>
           </div>
 
-          {state.error && (
+          {error && (
             <div
               role="alert"
               className="rounded-xl bg-red-50 px-3 py-2.5 text-xs text-red-600"
             >
-              {state.error}
+              {error}
             </div>
           )}
 

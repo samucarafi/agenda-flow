@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { getCurrentUser } from "@/lib/auth";
+import { AuthProvider } from "@/components/auth/AuthProvider";
 
 export default async function DashboardLayout({
   children,
@@ -13,5 +14,15 @@ export default async function DashboardLayout({
     redirect("/entrar");
   }
 
-  return children;
+  return (
+    <AuthProvider
+      user={{
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      }}
+    >
+      {children}
+    </AuthProvider>
+  );
 }

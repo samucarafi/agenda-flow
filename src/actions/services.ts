@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-
+import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Service } from "@/models/Service";
 
@@ -46,9 +46,19 @@ export async function createService(
   }
 
   try {
+    const user = await getCurrentUser();
+
+    if (!user) {
+      return {
+        success: false,
+        error: "Sua sessão expirou. Entre novamente.",
+      };
+    }
+
     await connectToDatabase();
 
     const existingService = await Service.findOne({
+      userId: user.id,
       name: result.data.name,
       active: true,
     });
@@ -60,7 +70,10 @@ export async function createService(
       };
     }
 
-    const service = await Service.create(result.data);
+    const service = await Service.create({
+      ...result.data,
+      userId: user.id,
+    });
 
     revalidatePath("/dashboard/servicos");
 
@@ -105,9 +118,19 @@ export async function updateService(
   }
 
   try {
+    const user = await getCurrentUser();
+
+    if (!user) {
+      return {
+        success: false,
+        error: "Sua sessão expirou. Entre novamente.",
+      };
+    }
+
     await connectToDatabase();
 
     const existingService = await Service.findOne({
+      userId: user.id,
       name: result.data.name,
       active: true,
       _id: { $ne: serviceId },
@@ -120,10 +143,17 @@ export async function updateService(
       };
     }
 
-    const service = await Service.findByIdAndUpdate(serviceId, result.data, {
-      new: true,
-      runValidators: true,
-    });
+    const service = await Service.findOneAndUpdate(
+      {
+        _id: serviceId,
+        userId: user.id,
+      },
+      result.data,
+      {
+        new: true,
+        runValidators: true,
+      },
+    );
 
     if (!service) {
       return {
@@ -161,10 +191,22 @@ export async function deleteService(serviceId: string): Promise<{
   error?: string;
 }> {
   try {
+    const user = await getCurrentUser();
+
+    if (!user) {
+      return {
+        success: false,
+        error: "Sua sessão expirou. Entre novamente.",
+      };
+    }
+
     await connectToDatabase();
 
-    const service = await Service.findByIdAndUpdate(
-      serviceId,
+    const service = await Service.findOneAndUpdate(
+      {
+        _id: serviceId,
+        userId: user.id,
+      },
       {
         active: false,
       },
@@ -200,10 +242,22 @@ export async function restoreService(serviceId: string): Promise<{
   error?: string;
 }> {
   try {
+    const user = await getCurrentUser();
+
+    if (!user) {
+      return {
+        success: false,
+        error: "Sua sessão expirou. Entre novamente.",
+      };
+    }
+
     await connectToDatabase();
 
-    const service = await Service.findByIdAndUpdate(
-      serviceId,
+    const service = await Service.findOneAndUpdate(
+      {
+        _id: serviceId,
+        userId: user.id,
+      },
       {
         active: true,
       },

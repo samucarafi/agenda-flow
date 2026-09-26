@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { connectToDatabase } from "@/lib/mongodb";
 import { Client } from "@/models/Client";
+import { getCurrentUser } from "@/lib/auth";
 
 const createClientSchema = z.object({
   name: z.string().trim().min(3).max(100),
@@ -43,9 +44,19 @@ export async function createClient(
   }
 
   try {
+    const user = await getCurrentUser();
+
+    if (!user) {
+      return {
+        success: false,
+        error: "Sua sessão expirou. Entre novamente.",
+      };
+    }
+
     await connectToDatabase();
 
     const existingClient = await Client.findOne({
+      userId: user.id,
       email: result.data.email,
       active: true,
     });
@@ -57,7 +68,12 @@ export async function createClient(
       };
     }
 
-    const client = await Client.create(result.data);
+    const client = await Client.create({
+      ...result.data,
+      email: result.data.email.toLowerCase(),
+      userId: user.id,
+    });
+
     revalidatePath("/dashboard/clientes");
 
     return {

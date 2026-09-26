@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-
+import { connectToDatabase } from "./mongodb";
 import { verifySession } from "./session";
 import User from "@/models/User";
 const SESSION_COOKIE = "agenda_flow_session";
@@ -40,6 +40,8 @@ export async function getCurrentUser() {
   if (!session) {
     return null;
   }
+
+  await connectToDatabase();
 
   const user = await User.findOne({
     _id: session.userId,
