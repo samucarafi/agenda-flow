@@ -17,10 +17,14 @@ type ServiceData = {
 };
 
 interface ServicesPageProps {
+  businessId: string;
   services: ServiceData[];
 }
 
-export function ServicesPage({ services: initialServices }: ServicesPageProps) {
+export function ServicesPage({
+  businessId,
+  services: initialServices,
+}: ServicesPageProps) {
   const [services, setServices] = useState<ServiceData[]>(initialServices);
 
   const [search, setSearch] = useState("");
@@ -45,7 +49,7 @@ export function ServicesPage({ services: initialServices }: ServicesPageProps) {
     try {
       setDeletingId(service._id);
 
-      const result = await deleteService(service._id);
+      const result = await deleteService(service._id, businessId);
 
       if (!result.success) {
         window.alert(result.error ?? "Não foi possível excluir o serviço.");
@@ -69,7 +73,7 @@ export function ServicesPage({ services: initialServices }: ServicesPageProps) {
     try {
       setDeletingId(service._id);
 
-      const result = await restoreService(service._id);
+      const result = await restoreService(service._id, businessId);
 
       if (!result.success) {
         window.alert(result.error ?? "Não foi possível reativar o serviço.");
@@ -321,6 +325,7 @@ export function ServicesPage({ services: initialServices }: ServicesPageProps) {
         onClose={handleModalClose}
         onCreated={handleServiceSaved}
         service={editingService}
+        businessId={businessId}
       />
     </>
   );

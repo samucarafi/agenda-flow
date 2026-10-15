@@ -14,6 +14,10 @@ export default async function DashboardLayout({
     redirect("/entrar");
   }
 
+  if (user.role !== "owner") {
+    redirect("/cliente");
+  }
+
   return (
     <AuthProvider
       user={{

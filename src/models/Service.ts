@@ -1,7 +1,7 @@
-import mongoose, { Schema, models } from "mongoose";
+import mongoose, { Schema, models, type Model } from "mongoose";
 
 export interface IService {
-  userId: mongoose.Types.ObjectId;
+  businessId: mongoose.Types.ObjectId;
   name: string;
   description?: string;
   duration: number;
@@ -13,9 +13,9 @@ export interface IService {
 
 const serviceSchema = new Schema<IService>(
   {
-    userId: {
+    businessId: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Business",
       required: true,
       index: true,
     },
@@ -24,6 +24,7 @@ const serviceSchema = new Schema<IService>(
       type: String,
       required: true,
       trim: true,
+      minlength: 2,
       maxlength: 100,
     },
 
@@ -38,12 +39,14 @@ const serviceSchema = new Schema<IService>(
       type: Number,
       required: true,
       min: 5,
+      max: 480,
     },
 
     price: {
       type: Number,
       required: true,
       min: 0,
+      max: 999999,
     },
 
     active: {
@@ -56,7 +59,11 @@ const serviceSchema = new Schema<IService>(
   },
 );
 
-serviceSchema.index({ userId: 1, name: 1 }, { unique: true });
+serviceSchema.index({ businessId: 1, name: 1 }, { unique: true });
 
-export const Service =
-  models.Service || mongoose.model<IService>("Service", serviceSchema);
+const Service =
+  (models.Service as Model<IService> | undefined) ??
+  mongoose.model<IService>("Service", serviceSchema);
+
+export { Service };
+export default Service;

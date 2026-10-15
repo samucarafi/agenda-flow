@@ -1,33 +1,5 @@
-import { getCurrentUser } from "@/lib/auth";
-import { connectToDatabase } from "@/lib/mongodb";
-import { Client } from "@/models/Client";
+import { redirect } from "next/navigation";
 
-import { ClientsPage } from "@/components/dashboard/ClientsPage";
-
-export default async function Page() {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    return null;
-  }
-
-  await connectToDatabase();
-
-  const clients = await Client.find({
-    userId: user.id,
-    active: true,
-  })
-    .sort({ createdAt: -1 })
-    .lean();
-
-  const serializedClients = clients.map((client) => ({
-    _id: client._id.toString(),
-    name: client.name,
-    email: client.email,
-    phone: client.phone,
-    active: client.active,
-    createdAt: client.createdAt.toISOString(),
-  }));
-
-  return <ClientsPage clients={serializedClients} />;
+export default function LegacyPage() {
+  redirect("/dashboard/negocios");
 }

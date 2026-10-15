@@ -14,12 +14,14 @@ interface ServiceModalProps {
   onClose: () => void;
   onCreated: (service: NonNullable<CreateServiceState["service"]>) => void;
   service?: NonNullable<CreateServiceState["service"]> | null;
+  businessId: string;
 }
 
 export function ServiceModal({
   open,
   onClose,
   onCreated,
+  businessId,
   service,
 }: ServiceModalProps) {
   const isEditing = Boolean(service);
@@ -37,17 +39,13 @@ export function ServiceModal({
     try {
       const formData = new FormData(event.currentTarget);
 
+      formData.set("businessId", businessId);
       const serviceId = formData.get("serviceId");
 
       const result =
         typeof serviceId === "string" && serviceId
           ? await updateService(serviceId, formData)
-          : await createService(
-              {
-                success: false,
-              },
-              formData,
-            );
+          : await createService({ success: false, error: "" }, formData);
 
       if (!result.success || !result.service) {
         setError(result.error ?? "Não foi possível salvar o serviço.");

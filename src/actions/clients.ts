@@ -3,17 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { getOwnedBusiness } from "@/lib/business";
 import { connectToDatabase } from "@/lib/mongodb";
-import { Client } from "@/models/Client";
-import { getCurrentUser } from "@/lib/auth";
+import Client from "@/models/Client";
 
-const createClientSchema = z.object({
-  name: z.string().trim().min(3).max(100),
-  email: z.string().trim().email().max(150),
-  phone: z.string().trim().min(10).max(30),
-});
-
-export type CreateClientState = {
+export interface CreateClientState {
   success: boolean;
   error?: string;
   client?: {
@@ -24,57 +18,71 @@ export type CreateClientState = {
     active: boolean;
     createdAt: string;
   };
-};
+}
+
+const clientSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(3, "Informe um nome com pelo menos 3 caracteres.")
+    .max(100),
+  email: z.string().trim().email("Informe um e-mail válido.").max(150),
+  phone: z.string().trim().min(10, "Informe um telefone válido.").max(30),
+});
 
 export async function createClient(
   _previousState: CreateClientState,
   formData: FormData,
 ): Promise<CreateClientState> {
-  const result = createClientSchema.safeParse({
+  const businessId = String(formData.get("businessId") ?? "");
+  const businessAccess = await getOwnedBusiness(businessId);
+
+  if (!businessAccess) {
+    return {
+      success: false,
+      error: "Negócio não encontrado ou acesso não autorizado.",
+    };
+  }
+
+  const parsed = clientSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
     phone: formData.get("phone"),
   });
 
-  if (!result.success) {
+  if (!parsed.success) {
     return {
       success: false,
-      error: "Preencha os dados corretamente.",
+      error:
+        parsed.error.issues[0]?.message ?? "Verifique os dados do cliente.",
     };
   }
 
+  const normalizedEmail = parsed.data.email.toLowerCase();
+
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      return {
-        success: false,
-        error: "Sua sessão expirou. Entre novamente.",
-      };
-    }
-
     await connectToDatabase();
 
     const existingClient = await Client.findOne({
-      userId: user.id,
-      email: result.data.email,
-      active: true,
-    });
+      businessId,
+      email: normalizedEmail,
+    }).select("_id");
 
     if (existingClient) {
       return {
         success: false,
-        error: "Já existe um cliente cadastrado com este e-mail.",
+        error: "Já existe um cliente com esse e-mail neste negócio.",
       };
     }
 
     const client = await Client.create({
-      ...result.data,
-      email: result.data.email.toLowerCase(),
-      userId: user.id,
+      ...parsed.data,
+      email: normalizedEmail,
+      businessId,
+      active: true,
     });
 
-    revalidatePath("/dashboard/clientes");
+    revalidatePath(`/dashboard/negocios/${businessId}/clientes`);
 
     return {
       success: true,
@@ -87,12 +95,10 @@ export async function createClient(
         createdAt: client.createdAt.toISOString(),
       },
     };
-  } catch (error) {
-    console.error("Erro ao criar cliente:", error);
-
+  } catch {
     return {
       success: false,
-      error: "Não foi possível criar o cliente.",
+      error: "Não foi possível cadastrar o cliente. Tente novamente.",
     };
   }
 }

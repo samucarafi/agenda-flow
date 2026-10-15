@@ -16,10 +16,14 @@ type ClientData = {
 };
 
 interface ClientsPageProps {
+  businessId: string;
   clients: ClientData[];
 }
 
-export function ClientsPage({ clients: initialClients }: ClientsPageProps) {
+export function ClientsPage({
+  businessId,
+  clients: initialClients,
+}: ClientsPageProps) {
   const [clients, setClients] = useState<ClientData[]>(initialClients);
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -150,6 +154,7 @@ export function ClientsPage({ clients: initialClients }: ClientsPageProps) {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onCreated={handleClientCreated}
+        businessId={businessId}
       />
     </>
   );

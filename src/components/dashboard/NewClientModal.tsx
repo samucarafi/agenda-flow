@@ -9,6 +9,7 @@ interface NewClientModalProps {
   open: boolean;
   onClose: () => void;
   onCreated: (client: NonNullable<CreateClientState["client"]>) => void;
+  businessId: string;
 }
 
 const initialState = {
@@ -20,6 +21,7 @@ export function NewClientModal({
   open,
   onClose,
   onCreated,
+  businessId,
 }: NewClientModalProps) {
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -84,6 +86,7 @@ export function NewClientModal({
         </div>
 
         <form ref={formRef} action={formAction} className="space-y-4 p-5">
+          <input type="hidden" name="businessId" value={businessId} />
           <div>
             <label
               htmlFor="client-name"

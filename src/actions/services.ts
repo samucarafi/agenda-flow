@@ -2,18 +2,23 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getCurrentUser } from "@/lib/auth";
-import { connectToDatabase } from "@/lib/mongodb";
-import { Service } from "@/models/Service";
 
-const createServiceSchema = z.object({
-  name: z.string().trim().min(2).max(100),
-  description: z.string().trim().max(500),
-  duration: z.coerce.number().min(5).max(480),
+import { getOwnedBusiness } from "@/lib/business";
+import { connectToDatabase } from "@/lib/mongodb";
+import Service from "@/models/Service";
+
+const serviceSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "Informe um nome com pelo menos 2 caracteres.")
+    .max(100),
+  description: z.string().trim().max(500).default(""),
+  duration: z.coerce.number().int().min(5).max(480),
   price: z.coerce.number().min(0).max(999999),
 });
 
-export type CreateServiceState = {
+export interface CreateServiceState {
   success: boolean;
   error?: string;
   service?: {
@@ -25,57 +30,65 @@ export type CreateServiceState = {
     active: boolean;
     createdAt: string;
   };
-};
+}
+
+function refreshBusinessPaths(businessId: string) {
+  revalidatePath(`/dashboard/negocios/${businessId}`);
+  revalidatePath(`/dashboard/negocios/${businessId}/servicos`);
+}
 
 export async function createService(
   _previousState: CreateServiceState,
   formData: FormData,
 ): Promise<CreateServiceState> {
-  const result = createServiceSchema.safeParse({
+  const businessId = String(formData.get("businessId") ?? "");
+  const businessAccess = await getOwnedBusiness(businessId);
+
+  if (!businessAccess) {
+    return {
+      success: false,
+      error: "Negócio não encontrado ou acesso não autorizado.",
+    };
+  }
+
+  const parsed = serviceSchema.safeParse({
     name: formData.get("name"),
     description: formData.get("description") ?? "",
     duration: formData.get("duration"),
     price: formData.get("price"),
   });
 
-  if (!result.success) {
+  if (!parsed.success) {
     return {
       success: false,
-      error: "Preencha os dados do serviço corretamente.",
+      error:
+        parsed.error.issues[0]?.message ?? "Verifique os dados do serviço.",
     };
   }
 
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      return {
-        success: false,
-        error: "Sua sessão expirou. Entre novamente.",
-      };
-    }
-
     await connectToDatabase();
 
     const existingService = await Service.findOne({
-      userId: user.id,
-      name: result.data.name,
-      active: true,
-    });
+      businessId,
+      name: parsed.data.name,
+    }).select("_id");
 
     if (existingService) {
       return {
         success: false,
-        error: "Já existe um serviço ativo com esse nome.",
+        error:
+          "Já existe um serviço com esse nome neste negócio. Verifique também os inativos.",
       };
     }
 
     const service = await Service.create({
-      ...result.data,
-      userId: user.id,
+      ...parsed.data,
+      businessId,
+      active: true,
     });
 
-    revalidatePath("/dashboard/servicos");
+    refreshBusinessPaths(businessId);
 
     return {
       success: true,
@@ -89,12 +102,10 @@ export async function createService(
         createdAt: service.createdAt.toISOString(),
       },
     };
-  } catch (error) {
-    console.error("Erro ao criar serviço:", error);
-
+  } catch {
     return {
       success: false,
-      error: "Não foi possível criar o serviço.",
+      error: "Não foi possível criar o serviço. Tente novamente.",
     };
   }
 }
@@ -103,188 +114,139 @@ export async function updateService(
   serviceId: string,
   formData: FormData,
 ): Promise<CreateServiceState> {
-  const result = createServiceSchema.safeParse({
+  const businessId = String(formData.get("businessId") ?? "");
+  const businessAccess = await getOwnedBusiness(businessId);
+
+  if (!businessAccess) {
+    return {
+      success: false,
+      error: "Negócio não encontrado ou acesso não autorizado.",
+    };
+  }
+
+  if (!serviceId || serviceId.length > 100) {
+    return { success: false, error: "Serviço inválido." };
+  }
+
+  const parsed = serviceSchema.safeParse({
     name: formData.get("name"),
     description: formData.get("description") ?? "",
     duration: formData.get("duration"),
     price: formData.get("price"),
   });
 
-  if (!result.success) {
+  if (!parsed.success) {
     return {
       success: false,
-      error: "Preencha os dados do serviço corretamente.",
+      error:
+        parsed.error.issues[0]?.message ?? "Verifique os dados do serviço.",
     };
   }
 
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      return {
-        success: false,
-        error: "Sua sessão expirou. Entre novamente.",
-      };
-    }
-
     await connectToDatabase();
 
-    const existingService = await Service.findOne({
-      userId: user.id,
-      name: result.data.name,
-      active: true,
+    const duplicate = await Service.findOne({
+      businessId,
+      name: parsed.data.name,
       _id: { $ne: serviceId },
-    });
+    }).select("_id");
 
-    if (existingService) {
+    if (duplicate) {
       return {
         success: false,
-        error: "Já existe outro serviço com esse nome.",
+        error: "Já existe outro serviço com esse nome neste negócio.",
       };
     }
 
-    const service = await Service.findOneAndUpdate(
-      {
-        _id: serviceId,
-        userId: user.id,
-      },
-      result.data,
-      {
-        new: true,
-        runValidators: true,
-      },
+    const updated = await Service.findOneAndUpdate(
+      { _id: serviceId, businessId },
+      { $set: parsed.data },
+      { new: true, runValidators: true },
     );
 
-    if (!service) {
-      return {
-        success: false,
-        error: "Serviço não encontrado.",
-      };
+    if (!updated) {
+      return { success: false, error: "Serviço não encontrado neste negócio." };
     }
 
-    revalidatePath("/dashboard/servicos");
+    refreshBusinessPaths(businessId);
 
     return {
       success: true,
       service: {
-        _id: service._id.toString(),
-        name: service.name,
-        description: service.description ?? "",
-        duration: service.duration,
-        price: service.price,
-        active: service.active,
-        createdAt: service.createdAt.toISOString(),
+        _id: updated._id.toString(),
+        name: updated.name,
+        description: updated.description ?? "",
+        duration: updated.duration,
+        price: updated.price,
+        active: updated.active,
+        createdAt: updated.createdAt.toISOString(),
       },
     };
-  } catch (error) {
-    console.error("Erro ao atualizar serviço:", error);
-
-    return {
-      success: false,
-      error: "Não foi possível atualizar o serviço.",
-    };
+  } catch {
+    return { success: false, error: "Não foi possível atualizar o serviço." };
   }
 }
 
-export async function deleteService(serviceId: string): Promise<{
-  success: boolean;
-  error?: string;
-}> {
+export async function deleteService(
+  serviceId: string,
+  businessId: string,
+): Promise<{ success: boolean; error?: string }> {
+  const businessAccess = await getOwnedBusiness(businessId);
+
+  if (!businessAccess) {
+    return { success: false, error: "Acesso não autorizado." };
+  }
+
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      return {
-        success: false,
-        error: "Sua sessão expirou. Entre novamente.",
-      };
-    }
-
     await connectToDatabase();
 
     const service = await Service.findOneAndUpdate(
-      {
-        _id: serviceId,
-        userId: user.id,
-      },
-      {
-        active: false,
-      },
-      {
-        new: true,
-      },
+      { _id: serviceId, businessId, active: true },
+      { $set: { active: false } },
+      { new: true },
     );
 
     if (!service) {
       return {
         success: false,
-        error: "Serviço não encontrado.",
+        error: "Serviço não encontrado ou já desativado.",
       };
     }
 
-    revalidatePath("/dashboard/servicos");
-
-    return {
-      success: true,
-    };
-  } catch (error) {
-    console.error("Erro ao excluir serviço:", error);
-
-    return {
-      success: false,
-      error: "Não foi possível excluir o serviço.",
-    };
+    refreshBusinessPaths(businessId);
+    return { success: true };
+  } catch {
+    return { success: false, error: "Não foi possível desativar o serviço." };
   }
 }
 
-export async function restoreService(serviceId: string): Promise<{
-  success: boolean;
-  error?: string;
-}> {
+export async function restoreService(
+  serviceId: string,
+  businessId: string,
+): Promise<{ success: boolean; error?: string }> {
+  const businessAccess = await getOwnedBusiness(businessId);
+
+  if (!businessAccess) {
+    return { success: false, error: "Acesso não autorizado." };
+  }
+
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      return {
-        success: false,
-        error: "Sua sessão expirou. Entre novamente.",
-      };
-    }
-
     await connectToDatabase();
 
     const service = await Service.findOneAndUpdate(
-      {
-        _id: serviceId,
-        userId: user.id,
-      },
-      {
-        active: true,
-      },
-      {
-        new: true,
-        runValidators: true,
-      },
+      { _id: serviceId, businessId, active: false },
+      { $set: { active: true } },
+      { new: true },
     );
 
     if (!service) {
-      return {
-        success: false,
-        error: "Serviço não encontrado.",
-      };
+      return { success: false, error: "Serviço não encontrado ou já ativo." };
     }
 
-    revalidatePath("/dashboard/servicos");
-
-    return {
-      success: true,
-    };
-  } catch (error) {
-    console.error("Erro ao reativar serviço:", error);
-
-    return {
-      success: false,
-      error: "Não foi possível reativar o serviço.",
-    };
+    refreshBusinessPaths(businessId);
+    return { success: true };
+  } catch {
+    return { success: false, error: "Não foi possível reativar o serviço." };
   }
 }

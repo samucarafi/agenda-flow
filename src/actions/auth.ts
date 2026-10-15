@@ -80,9 +80,17 @@ export async function login(
 
   await setSessionCookie(token);
 
-  return {
-    success: true,
-  };
+  if (user.role !== "owner" && user.role !== "client") {
+    await clearSession();
+
+    return {
+      success: false,
+      error:
+        "Conta sem perfil de acesso configurado. Entre em contato com o suporte.",
+    };
+  }
+
+  redirect(user.role === "owner" ? "/dashboard" : "/cliente");
 }
 
 export async function register(
@@ -121,6 +129,7 @@ export async function register(
     name: parsed.data.name,
     email,
     passwordHash,
+    role: "client",
     active: true,
   });
 

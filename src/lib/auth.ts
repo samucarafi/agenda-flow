@@ -47,12 +47,16 @@ export async function getCurrentUser() {
     _id: session.userId,
     active: true,
   })
-    .select("_id name email")
+    .select("_id name email role")
     .lean();
 
   if (!user) {
     await clearSession();
+    return null;
+  }
 
+  if (user.role !== "owner" && user.role !== "client") {
+    await clearSession();
     return null;
   }
 
@@ -60,5 +64,6 @@ export async function getCurrentUser() {
     id: user._id.toString(),
     name: user.name,
     email: user.email,
+    role: user.role,
   };
 }
