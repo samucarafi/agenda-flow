@@ -1,8 +1,18 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { FiArrowLeft, FiSettings, FiImage } from "react-icons/fi";
+import {
+  FiArrowLeft,
+  FiSettings,
+  FiImage,
+  FiCalendar,
+  FiUsers,
+  FiBriefcase,
+  FiArrowUpRight,
+  FiGlobe,
+  FiClock,
+} from "react-icons/fi";
 import mongoose from "mongoose";
-
+import { DeleteBusinessButton } from "@/components/dashboard/businesses/DeleteBusinessButton";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import Business from "@/models/Business";
@@ -14,13 +24,8 @@ export default async function ManageBusinessPage({
 }) {
   const user = await getCurrentUser();
 
-  if (!user) {
-    redirect("/entrar");
-  }
-
-  if (user.role !== "owner") {
-    redirect("/cliente");
-  }
+  if (!user) redirect("/entrar");
+  if (user.role !== "owner") redirect("/cliente");
 
   const { businessId } = await params;
 
@@ -39,9 +44,7 @@ export default async function ManageBusinessPage({
     )
     .lean();
 
-  if (!business) {
-    notFound();
-  }
+  if (!business) notFound();
 
   const categories: Record<string, string> = {
     barbershop: "Barbearia",
@@ -50,78 +53,189 @@ export default async function ManageBusinessPage({
     other: "Outro negócio",
   };
 
+  const basePath = `/dashboard/negocios/${businessId}`;
+
+  const managementItems = [
+    {
+      title: "Agenda",
+      description:
+        "Consulte os horários, crie agendamentos e organize seus atendimentos.",
+      href: `${basePath}/agenda`,
+      icon: FiCalendar,
+      label: "Abrir agenda",
+    },
+    {
+      title: "Serviços",
+      description: "Gerencie os serviços oferecidos, a duração e os preços.",
+      href: `${basePath}/servicos`,
+      icon: FiBriefcase,
+      label: "Gerenciar serviços",
+    },
+    {
+      title: "Clientes",
+      description: "Consulte e organize os clientes cadastrados neste negócio.",
+      href: `${basePath}/clientes`,
+      icon: FiUsers,
+      label: "Gerenciar clientes",
+    },
+    {
+      title: "Configurações",
+      description:
+        "Prepare as regras de reserva, o fuso horário e as preferências.",
+      href: `${basePath}/configuracoes`,
+      icon: FiSettings,
+      label: "Configurar negócio",
+    },
+  ];
+
   return (
     <main className="min-h-full bg-slate-950 px-4 py-8 text-white sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-6xl">
         <Link
           href="/dashboard/negocios"
-          className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white"
+          className="inline-flex items-center gap-2 text-sm text-slate-400 transition hover:text-white"
         >
           <FiArrowLeft />
           Meus negócios
         </Link>
 
-        <header className="mt-6">
-          <p className="text-sm text-cyan-400">
-            {categories[business.category] ?? "Negócio"}
-          </p>
-
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">
-            {business.name}
-          </h1>
-
-          <p className="mt-2 text-sm text-slate-400">
-            Gerencie a identidade e as configurações deste estabelecimento.
-          </p>
-        </header>
-
-        <section className="mt-8 grid gap-4 sm:grid-cols-2">
-          <article className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <FiImage className="text-cyan-400" size={24} />
-
-            <h2 className="mt-4 font-semibold">Identidade visual</h2>
-
-            <p className="mt-2 text-sm leading-6 text-slate-400">
-              Personalize o tema, as cores e a apresentação da página pública.
+        <header className="mt-7 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-cyan-400">
+              {categories[business.category] ?? "Negócio"}
             </p>
 
-            <p className="mt-4 text-xs text-slate-500">
-              Template atual: {business.theme?.template ?? "default"}
+            <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+              {business.name}
+            </h1>
+
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
+              Gerencie sua operação, organize os atendimentos e configure a
+              experiência dos seus clientes.
+            </p>
+          </div>
+
+          <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-slate-300">
+            <span
+              className={`size-2 rounded-full ${
+                business.status === "active" ? "bg-emerald-400" : "bg-amber-400"
+              }`}
+            />
+            {business.status === "active"
+              ? "Ativo"
+              : business.status === "suspended"
+                ? "Suspenso"
+                : "Em configuração"}
+          </span>
+        </header>
+
+        <section className="mt-9">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold">Gerenciar negócio</h2>
+            <p className="mt-1 text-sm text-slate-400">
+              Escolha uma área para continuar.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {managementItems.map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <Link
+                  key={item.title}
+                  href={item.href}
+                  className="group flex min-h-56 flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:-translate-y-1 hover:border-cyan-400/40 hover:bg-cyan-400/[0.04]"
+                >
+                  <div className="flex size-12 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-400 transition group-hover:bg-cyan-400/15">
+                    <Icon size={23} />
+                  </div>
+
+                  <h3 className="mt-5 flex items-center justify-between gap-2 font-semibold">
+                    {item.title}
+                    <FiArrowUpRight
+                      className="text-slate-500 transition group-hover:text-cyan-400"
+                      size={18}
+                    />
+                  </h3>
+
+                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                    {item.description}
+                  </p>
+
+                  <span className="mt-auto pt-5 text-sm font-medium text-cyan-400">
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="mt-6 grid gap-4 lg:grid-cols-2">
+          <article className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-white/[0.06] text-slate-300">
+                <FiImage size={20} />
+              </div>
+
+              <div>
+                <h2 className="font-semibold">Identidade visual</h2>
+                <p className="text-xs text-slate-400">
+                  Aparência da página pública
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-4 text-sm text-slate-400">
+              Tema atual: {business.theme?.template ?? "default"}
+            </p>
+
+            <p className="mt-1 text-sm text-slate-400">
+              Personalizações visuais podem ser conectadas nesta área.
             </p>
           </article>
 
-          <article className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <FiSettings className="text-cyan-400" size={24} />
+          <article className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-white/[0.06] text-slate-300">
+                <FiGlobe size={20} />
+              </div>
 
-            <h2 className="mt-4 font-semibold">Configurações</h2>
+              <div>
+                <h2 className="font-semibold">Página pública</h2>
+                <p className="text-xs text-slate-400">
+                  Endereço do estabelecimento
+                </p>
+              </div>
+            </div>
 
-            <p className="mt-2 text-sm leading-6 text-slate-400">
-              Prepare os horários, as regras de reserva e a publicação do
-              negócio.
+            <p className="mt-4 break-all text-sm text-cyan-400">
+              /b/{business.slug}
             </p>
 
-            <p className="mt-4 text-xs text-slate-500">
-              Status: {business.status}
-            </p>
+            <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">
+              <FiClock size={14} />
+              Fuso horário: {business.timezone || "Não configurado"}
+            </div>
 
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-2 text-xs text-slate-500">
               Reservas públicas:{" "}
               {business.bookingSettings?.enabled ? "Ativadas" : "Desativadas"}
             </p>
           </article>
         </section>
-
-        <section className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <h2 className="font-semibold">Página pública</h2>
-
-          <p className="mt-2 break-all text-sm text-slate-400">
-            /b/{business.slug}
+        <section className="mt-6 rounded-2xl border border-red-400/20 bg-red-400/[0.03] p-5 sm:p-6">
+          <h2 className="font-semibold text-red-300">Zona de perigo</h2>
+          <p className="mt-2 mb-4 text-sm leading-6 text-slate-400">
+            A exclusão remove este estabelecimento e os registros relacionados.
+            Ela não exclui a sua conta no AgendaFlow.
           </p>
 
-          <p className="mt-2 text-sm text-slate-500">
-            A página só poderá receber reservas quando estiver ativa e as regras
-            de disponibilidade estiverem configuradas.
-          </p>
+          <DeleteBusinessButton
+            businessId={businessId}
+            businessName={business.name}
+          />
         </section>
       </div>
     </main>

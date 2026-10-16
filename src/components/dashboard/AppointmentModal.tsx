@@ -40,6 +40,7 @@ interface AppointmentModalProps {
   clients: ClientOption[];
   services: ServiceOption[];
   selectedDate: string;
+  businessId: string;
 }
 
 export function AppointmentModal({
@@ -49,6 +50,7 @@ export function AppointmentModal({
   clients,
   services,
   selectedDate,
+  businessId,
 }: AppointmentModalProps) {
   const [clientId, setClientId] = useState("");
   const [serviceId, setServiceId] = useState("");
@@ -112,7 +114,7 @@ export function AppointmentModal({
       setPending(true);
 
       const formData = new FormData();
-
+      formData.set("businessId", businessId);
       formData.set("clientId", clientId);
       formData.set("serviceId", serviceId);
       formData.set("date", date);

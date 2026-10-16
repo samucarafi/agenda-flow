@@ -48,7 +48,7 @@ export function Sidebar({ user }: SidebarProps) {
         },
         {
           label: "Agenda",
-          href: "/dashboard/agenda",
+          href: `/dashboard/negocios/${businessId}/agenda`,
           icon: FiCalendar,
         },
         {
@@ -63,7 +63,7 @@ export function Sidebar({ user }: SidebarProps) {
         },
         {
           label: "Configurações",
-          href: `/dashboard/negocios/${businessId}`,
+          href: `/dashboard/negocios/${businessId}/configuracoes`,
           icon: FiSettings,
         },
       ]

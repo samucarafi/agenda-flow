@@ -1,19 +1,22 @@
 "use server";
 
+import mongoose from "mongoose";
 import { z } from "zod";
 
-import { getCurrentUser } from "@/lib/auth";
+import { getOwnedBusiness } from "@/lib/business";
 import { connectToDatabase } from "@/lib/mongodb";
-
 import { Appointment } from "@/models/Appointment";
 import { Client } from "@/models/Client";
 import { Service } from "@/models/Service";
 
 const appointmentSchema = z.object({
+  businessId: z.string().min(1, "Negócio inválido."),
   clientId: z.string().min(1, "Selecione um cliente."),
   serviceId: z.string().min(1, "Selecione um serviço."),
-  date: z.string().min(1, "Selecione uma data."),
-  startTime: z.string().min(1, "Informe o horário."),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida."),
+  startTime: z
+    .string()
+    .regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/, "Horário inválido."),
   notes: z
     .string()
     .trim()
@@ -37,12 +40,34 @@ export type AppointmentActionState = {
   };
 };
 
-function addMinutes(time: string, minutes: number) {
-  const [hours, mins] = time.split(":").map(Number);
+function parseDateOnly(value: string): Date | null {
+  const date = new Date(`${value}T00:00:00.000Z`);
 
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.toISOString().slice(0, 10) !== value
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
+function addMinutes(time: string, minutes: number): string | null {
+  const [hours, mins] = time.split(":").map(Number);
   const totalMinutes = hours * 60 + mins + minutes;
 
-  const endHours = Math.floor(totalMinutes / 60) % 24;
+  // Por enquanto, não permitimos agendamentos
+  // que terminem no dia seguinte.
+  if (
+    !Number.isInteger(minutes) ||
+    minutes <= 0 ||
+    totalMinutes > 23 * 60 + 59
+  ) {
+    return null;
+  }
+
+  const endHours = Math.floor(totalMinutes / 60);
   const endMinutes = totalMinutes % 60;
 
   return `${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(
@@ -55,16 +80,8 @@ export async function createAppointment(
   _previousState: AppointmentActionState,
   formData: FormData,
 ): Promise<AppointmentActionState> {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    return {
-      success: false,
-      error: "Sua sessão expirou. Entre novamente.",
-    };
-  }
-
   const parsed = appointmentSchema.safeParse({
+    businessId: formData.get("businessId"),
     clientId: formData.get("clientId"),
     serviceId: formData.get("serviceId"),
     date: formData.get("date"),
@@ -75,56 +92,103 @@ export async function createAppointment(
   if (!parsed.success) {
     return {
       success: false,
-      error: parsed.error.issues[0]?.message ?? "Dados inválidos.",
+      error:
+        parsed.error.issues[0]?.message ?? "Verifique os dados do agendamento.",
+    };
+  }
+
+  const {
+    businessId,
+    clientId,
+    serviceId,
+    date: dateValue,
+    startTime,
+    notes,
+  } = parsed.data;
+
+  if (
+    !mongoose.isValidObjectId(businessId) ||
+    !mongoose.isValidObjectId(clientId) ||
+    !mongoose.isValidObjectId(serviceId)
+  ) {
+    return {
+      success: false,
+      error: "Os dados do agendamento são inválidos.",
+    };
+  }
+
+  const date = parseDateOnly(dateValue);
+
+  if (!date) {
+    return {
+      success: false,
+      error: "Informe uma data válida.",
     };
   }
 
   try {
+    // Valida a sessão, o papel do usuário e a propriedade
+    // do negócio no servidor.
+    const ownedBusiness = await getOwnedBusiness(businessId);
+
+    if (!ownedBusiness) {
+      return {
+        success: false,
+        error: "Negócio não encontrado ou acesso não autorizado.",
+      };
+    }
+
     await connectToDatabase();
 
+    // Cliente e serviço precisam pertencer ao mesmo negócio.
     const [client, service] = await Promise.all([
       Client.findOne({
-        _id: parsed.data.clientId,
-        userId: user.id,
+        _id: clientId,
+        businessId,
         active: true,
-      }),
+      }).lean(),
 
       Service.findOne({
-        _id: parsed.data.serviceId,
-        userId: user.id,
+        _id: serviceId,
+        businessId,
         active: true,
-      }),
+      }).lean(),
     ]);
 
     if (!client) {
       return {
         success: false,
-        error: "Cliente não encontrado.",
+        error: "Cliente não encontrado neste negócio.",
       };
     }
 
     if (!service) {
       return {
         success: false,
-        error: "Serviço não encontrado.",
+        error: "Serviço não encontrado neste negócio.",
       };
     }
 
-    const endTime = addMinutes(parsed.data.startTime, service.duration);
+    const endTime = addMinutes(startTime, Number(service.duration));
 
+    if (!endTime) {
+      return {
+        success: false,
+        error:
+          "O horário de término ultrapassa o limite do dia. Escolha outro horário.",
+      };
+    }
+
+    // Verifica conflitos somente dentro deste negócio e dia.
     const conflictingAppointment = await Appointment.findOne({
-      userId: user.id,
-      date: new Date(`${parsed.data.date}T00:00:00`),
-      status: {
-        $ne: "cancelled",
-      },
-      startTime: {
-        $lt: endTime,
-      },
-      endTime: {
-        $gt: parsed.data.startTime,
-      },
-    });
+      businessId,
+      date,
+      status: { $ne: "cancelled" },
+      startTime: { $lt: endTime },
+      endTime: { $gt: startTime },
+    })
+      .select("_id")
+      .lean();
 
     if (conflictingAppointment) {
       return {
@@ -134,14 +198,14 @@ export async function createAppointment(
     }
 
     const appointment = await Appointment.create({
-      userId: user.id,
+      businessId,
       clientId: client._id,
       serviceId: service._id,
-      date: new Date(`${parsed.data.date}T00:00:00`),
-      startTime: parsed.data.startTime,
+      date,
+      startTime,
       endTime,
       status: "scheduled",
-      notes: parsed.data.notes ?? "",
+      notes: notes ?? "",
     });
 
     return {
@@ -167,45 +231,82 @@ export async function createAppointment(
   }
 }
 
-export async function getAppointments(date: string) {
-  const user = await getCurrentUser();
-
-  if (!user) {
+export async function getAppointments(businessId: string, dateValue: string) {
+  if (
+    !mongoose.isValidObjectId(businessId) ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(dateValue)
+  ) {
     return [];
   }
 
-  await connectToDatabase();
+  const date = parseDateOnly(dateValue);
 
-  const appointments = await Appointment.find({
-    userId: user.id,
-    date: new Date(`${date}T00:00:00`),
-  })
-    .populate("clientId", "name email phone")
-    .populate("serviceId", "name duration price")
-    .sort({ startTime: 1 })
-    .lean();
+  if (!date) {
+    return [];
+  }
 
-  return appointments.map((appointment) => ({
-    _id: appointment._id.toString(),
+  try {
+    // Impede que um usuário consulte a agenda de outra empresa.
+    const ownedBusiness = await getOwnedBusiness(businessId);
 
-    client: {
-      _id: appointment.clientId._id.toString(),
-      name: appointment.clientId.name,
-      email: appointment.clientId.email,
-      phone: appointment.clientId.phone,
-    },
+    if (!ownedBusiness) {
+      return [];
+    }
 
-    service: {
-      _id: appointment.serviceId._id.toString(),
-      name: appointment.serviceId.name,
-      duration: appointment.serviceId.duration,
-      price: appointment.serviceId.price,
-    },
+    await connectToDatabase();
 
-    date: appointment.date.toISOString(),
-    startTime: appointment.startTime,
-    endTime: appointment.endTime,
-    status: appointment.status,
-    notes: appointment.notes ?? "",
-  }));
+    const appointments = await Appointment.find({
+      businessId,
+      date,
+    })
+      .populate("clientId", "name email phone")
+      .populate("serviceId", "name duration price")
+      .sort({ startTime: 1 })
+      .lean();
+
+    return appointments.map((appointment) => {
+      const client = appointment.clientId as unknown as {
+        _id: mongoose.Types.ObjectId;
+        name: string;
+        email?: string;
+        phone?: string;
+      } | null;
+
+      const service = appointment.serviceId as unknown as {
+        _id: mongoose.Types.ObjectId;
+        name: string;
+        duration: number;
+        price: number;
+      } | null;
+
+      return {
+        _id: appointment._id.toString(),
+        businessId: appointment.businessId.toString(),
+        clientId: client
+          ? {
+              _id: client._id.toString(),
+              name: client.name,
+              email: client.email ?? "",
+              phone: client.phone ?? "",
+            }
+          : null,
+        serviceId: service
+          ? {
+              _id: service._id.toString(),
+              name: service.name,
+              duration: service.duration,
+              price: service.price,
+            }
+          : null,
+        date: appointment.date.toISOString(),
+        startTime: appointment.startTime,
+        endTime: appointment.endTime,
+        status: appointment.status,
+        notes: appointment.notes ?? "",
+      };
+    });
+  } catch (error) {
+    console.error("getAppointments:", error);
+    return [];
+  }
 }

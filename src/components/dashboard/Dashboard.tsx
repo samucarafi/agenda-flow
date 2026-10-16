@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FiArrowUpRight, FiPlus } from "react-icons/fi";
+import { FiArrowUpRight, FiCalendar, FiPlus } from "react-icons/fi";
 
 import { Stats } from "./Stats";
 import { TodaySchedule } from "./TodaySchedule";
@@ -12,23 +12,23 @@ export function Dashboard() {
       title="Visão geral"
       description="Acompanhe o que está acontecendo no seu negócio."
     >
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-zinc-950 sm:text-2xl">
-            Bom dia, Samuel.
+            Bom dia!
           </h2>
 
           <p className="mt-1 text-sm text-zinc-500">
-            Aqui está um resumo do seu negócio hoje.
+            Acesse seus negócios para gerenciar os atendimentos.
           </p>
         </div>
 
         <Link
-          href="/agenda"
-          className="inline-flex h-9 w-fit items-center gap-2 rounded-xl bg-[#635bff] px-3.5 text-xs font-semibold text-white hover:bg-[#5148e8]"
+          href="/dashboard/negocios"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400"
         >
-          <FiPlus size={14} />
-          Novo agendamento
+          <FiPlus size={18} />
+          Escolher negócio e agendar
         </Link>
       </div>
 
@@ -41,11 +41,12 @@ export function Dashboard() {
 
       <div className="mt-5 flex justify-end">
         <Link
-          href="/dashboard/agenda"
-          className="inline-flex items-center gap-1 text-xs font-medium text-zinc-500 hover:text-zinc-900"
+          href="/dashboard/negocios"
+          className="inline-flex items-center gap-2 text-sm font-medium text-zinc-500 transition hover:text-zinc-900"
         >
-          Ver agenda completa
-          <FiArrowUpRight size={13} />
+          <FiCalendar size={16} />
+          Acessar agendas dos negócios
+          <FiArrowUpRight size={15} />
         </Link>
       </div>
     </DashboardLayout>

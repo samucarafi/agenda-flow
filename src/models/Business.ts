@@ -34,6 +34,13 @@ export interface IBusiness {
     maxDaysInAdvance: number;
   };
 
+  availability: {
+    workingDays: number[];
+    openingTime: string;
+    closingTime: string;
+    slotIntervalMinutes: number;
+  };
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -131,7 +138,37 @@ const businessSchema = new Schema<IBusiness>(
         default: 60,
       },
     },
+
+    availability: {
+      workingDays: {
+        type: [Number],
+        default: [1, 2, 3, 4, 5, 6],
+        validate: {
+          validator: (days: number[]) =>
+            days.every(
+              (day) => Number.isInteger(day) && day >= 0 && day <= 6,
+            ) && new Set(days).size === days.length,
+          message: "Os dias de funcionamento são inválidos.",
+        },
+      },
+      openingTime: {
+        type: String,
+        default: "09:00",
+        match: /^(?:[01]\d|2[0-3]):[0-5]\d$/,
+      },
+      closingTime: {
+        type: String,
+        default: "18:00",
+        match: /^(?:[01]\d|2[0-3]):[0-5]\d$/,
+      },
+      slotIntervalMinutes: {
+        type: Number,
+        enum: [15, 30, 60],
+        default: 30,
+      },
+    },
   },
+
   {
     timestamps: true,
   },

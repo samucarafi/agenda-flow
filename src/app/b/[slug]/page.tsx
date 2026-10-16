@@ -1,0 +1,184 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { FiArrowLeft, FiArrowRight, FiClock, FiMapPin } from "react-icons/fi";
+
+import { connectToDatabase } from "@/lib/mongodb";
+import Business from "@/models/Business";
+import Service from "@/models/Service";
+
+interface PageProps {
+  params: Promise<{ slug: string }>;
+}
+
+const categoryLabels: Record<string, string> = {
+  barbershop: "Barbearia",
+  beauty_salon: "Salão de beleza",
+  restaurant: "Restaurante",
+  other: "Estabelecimento",
+};
+
+const currency = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+});
+
+export default async function PublicBusinessPage({ params }: PageProps) {
+  const { slug } = await params;
+
+  await connectToDatabase();
+
+  const business = await Business.findOne({
+    slug: slug.toLowerCase(),
+    status: "active",
+    "bookingSettings.enabled": true,
+  })
+    .select("name slug category description timezone theme bookingSettings")
+    .lean();
+
+  if (!business) notFound();
+
+  const services = await Service.find({
+    businessId: business._id,
+    active: true,
+  })
+    .select("name description duration price")
+    .sort({ name: 1 })
+    .lean();
+
+  const primaryColor = /^#[0-9a-fA-F]{6}$/.test(
+    business.theme?.primaryColor ?? "",
+  )
+    ? business.theme.primaryColor
+    : "#0F172A";
+
+  const accentColor = /^#[0-9a-fA-F]{6}$/.test(
+    business.theme?.accentColor ?? "",
+  )
+    ? business.theme.accentColor
+    : "#06B6D4";
+
+  return (
+    <main
+      className="min-h-screen bg-slate-950 text-white"
+      style={
+        {
+          "--business-primary": primaryColor,
+          "--business-accent": accentColor,
+        } as React.CSSProperties
+      }
+    >
+      <header className="border-b border-white/10 bg-white/[0.02]">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+          <Link
+            href="/cliente"
+            className="inline-flex items-center gap-2 text-sm text-slate-400 transition hover:text-white"
+          >
+            <FiArrowLeft />
+            Área do cliente
+          </Link>
+
+          <span className="text-xs font-medium tracking-wide text-cyan-400">
+            AGENDAFLOW
+          </span>
+        </div>
+      </header>
+
+      <section className="relative overflow-hidden border-b border-white/10">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-20"
+          style={{
+            background:
+              "radial-gradient(ellipse at top right, var(--business-accent), transparent 60%)",
+          }}
+        />
+
+        <div className="relative mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
+          <p className="text-sm font-medium text-cyan-400">
+            {categoryLabels[business.category] ?? "Estabelecimento"}
+          </p>
+
+          <h1 className="mt-3 max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl">
+            {business.name}
+          </h1>
+
+          {business.description && (
+            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
+              {business.description}
+            </p>
+          )}
+
+          <p className="mt-5 flex items-center gap-2 text-sm text-slate-400">
+            <FiMapPin className="text-cyan-400" />
+            Atendimento com horário agendado
+          </p>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
+        <div className="mb-7">
+          <p className="text-sm font-medium text-cyan-400">NOSSO CATÁLOGO</p>
+
+          <h2 className="mt-2 text-2xl font-bold sm:text-3xl">
+            Escolha seu serviço
+          </h2>
+
+          <p className="mt-2 text-sm text-slate-400">
+            Confira as opções, a duração e o preço antes de continuar.
+          </p>
+        </div>
+
+        {services.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center">
+            <h3 className="font-semibold">Nenhum serviço disponível ainda</h3>
+            <p className="mt-2 text-sm text-slate-400">
+              Este estabelecimento ainda não publicou seus serviços.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {services.map((service) => (
+              <article
+                key={service._id.toString()}
+                className="flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-white/20"
+              >
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold">{service.name}</h3>
+
+                  {service.description && (
+                    <p className="mt-2 text-sm leading-6 text-slate-400">
+                      {service.description}
+                    </p>
+                  )}
+
+                  <p className="mt-4 flex items-center gap-2 text-sm text-slate-400">
+                    <FiClock className="text-cyan-400" />
+                    {service.duration} minutos
+                  </p>
+                </div>
+
+                <div className="mt-5 flex items-center justify-between gap-3 border-t border-white/10 pt-4">
+                  <span className="text-lg font-bold">
+                    {currency.format(service.price)}
+                  </span>
+
+                  <Link
+                    href={`/b/${business.slug}/agendar?service=${service._id.toString()}`}
+                    className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:opacity-90"
+                    style={{ backgroundColor: accentColor }}
+                  >
+                    Agendar
+                    <FiArrowRight />
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <footer className="border-t border-white/10 px-4 py-6 text-center text-xs text-slate-500">
+        Agendamentos organizados com AgendaFlow.
+      </footer>
+    </main>
+  );
+}

@@ -1,4 +1,4 @@
-import mongoose, { Schema, models } from "mongoose";
+import mongoose, { Schema, models, type Model } from "mongoose";
 
 export type AppointmentStatus =
   | "scheduled"
@@ -7,7 +7,12 @@ export type AppointmentStatus =
   | "cancelled";
 
 export interface IAppointment {
-  userId: mongoose.Types.ObjectId;
+  businessId: mongoose.Types.ObjectId;
+
+  // Conta do cliente que fez a reserva online.
+  // Pode estar ausente em agendamentos administrativos antigos.
+  userId?: mongoose.Types.ObjectId;
+
   clientId: mongoose.Types.ObjectId;
   serviceId: mongoose.Types.ObjectId;
 
@@ -22,12 +27,19 @@ export interface IAppointment {
   updatedAt: Date;
 }
 
-const AppointmentSchema = new Schema<IAppointment>(
+const appointmentSchema = new Schema<IAppointment>(
   {
+    businessId: {
+      type: Schema.Types.ObjectId,
+      ref: "Business",
+      required: true,
+      index: true,
+    },
+
     userId: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      default: undefined,
       index: true,
     },
 
@@ -46,23 +58,25 @@ const AppointmentSchema = new Schema<IAppointment>(
     date: {
       type: Date,
       required: true,
-      index: true,
     },
 
     startTime: {
       type: String,
       required: true,
+      match: /^(?:[01]\d|2[0-3]):[0-5]\d$/,
     },
 
     endTime: {
       type: String,
       required: true,
+      match: /^(?:[01]\d|2[0-3]):[0-5]\d$/,
     },
 
     status: {
       type: String,
       enum: ["scheduled", "confirmed", "completed", "cancelled"],
       default: "scheduled",
+      required: true,
     },
 
     notes: {
@@ -77,11 +91,29 @@ const AppointmentSchema = new Schema<IAppointment>(
   },
 );
 
-AppointmentSchema.index({
-  userId: 1,
+// Consultas da agenda por negócio e data.
+appointmentSchema.index({
+  businessId: 1,
   date: 1,
+  startTime: 1,
 });
 
-export const Appointment =
-  models.Appointment ||
-  mongoose.model<IAppointment>("Appointment", AppointmentSchema);
+// Consultas de reservas de uma conta de cliente.
+appointmentSchema.index({
+  userId: 1,
+  date: -1,
+});
+
+// Ajuda a consultar reservas ativas de um negócio.
+appointmentSchema.index({
+  businessId: 1,
+  date: 1,
+  status: 1,
+});
+
+const Appointment =
+  (models.Appointment as Model<IAppointment> | undefined) ??
+  mongoose.model<IAppointment>("Appointment", appointmentSchema);
+
+export { Appointment };
+export default Appointment;

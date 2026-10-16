@@ -138,13 +138,31 @@ export default async function BusinessesPage() {
                 )}
 
                 <div className="mt-5 border-t border-white/10 pt-4">
-                  <p className="break-all text-xs text-slate-500">
-                    Endereço público: /b/{business.slug}
-                  </p>
+                  <p className="text-xs text-slate-400">Página pública</p>
 
-                  <p className="mt-1 text-xs text-slate-500">
-                    Reservas públicas disponíveis após a configuração.
-                  </p>
+                  <Link
+                    href={`/b/${business.slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-flex items-center gap-2 break-all text-sm font-medium text-cyan-400 hover:text-cyan-300"
+                  >
+                    /b/{business.slug}
+                    <FiArrowUpRight size={16} />
+                  </Link>
+
+                  {business.status === "active" ? (
+                    <Link
+                      href={`/b/${business.slug}/agendar`}
+                      className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-cyan-400/30 px-4 py-2.5 text-sm font-semibold text-cyan-300 hover:bg-cyan-400/10"
+                    >
+                      Testar agendamento
+                      <FiArrowUpRight size={16} />
+                    </Link>
+                  ) : (
+                    <p className="mt-2 text-xs text-amber-300">
+                      Ative o negócio para disponibilizar a página pública.
+                    </p>
+                  )}
                 </div>
 
                 <Link
