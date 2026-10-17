@@ -56,38 +56,84 @@ export default async function ManageBusinessPage({
 
   const basePath = `/dashboard/negocios/${businessId}`;
 
-  const managementItems = [
-    {
-      title: "Agenda",
-      description:
-        "Consulte os horários, crie agendamentos e organize seus atendimentos.",
-      href: `${basePath}/agenda`,
-      icon: FiCalendar,
-      label: "Abrir agenda",
-    },
-    {
-      title: "Serviços",
-      description: "Gerencie os serviços oferecidos, a duração e os preços.",
-      href: `${basePath}/servicos`,
-      icon: FiBriefcase,
-      label: "Gerenciar serviços",
-    },
-    {
-      title: "Clientes",
-      description: "Consulte e organize os clientes cadastrados neste negócio.",
-      href: `${basePath}/clientes`,
-      icon: FiUsers,
-      label: "Gerenciar clientes",
-    },
-    {
-      title: "Configurações",
-      description:
-        "Prepare as regras de reserva, o fuso horário e as preferências.",
-      href: `${basePath}/configuracoes`,
-      icon: FiSettings,
-      label: "Configurar negócio",
-    },
-  ];
+  const managementItems =
+    business.category === "restaurant"
+      ? [
+          {
+            title: "Mesas",
+            description:
+              "Cadastre mesas, configure capacidades e controle a disponibilidade.",
+            href: `${basePath}/mesas`,
+            icon: FiUsers,
+            label: "Gerenciar mesas",
+          },
+          {
+            title: "Fila de espera",
+            description:
+              "Organize os grupos aguardando atendimento e acompanhe a fila.",
+            href: `${basePath}/fila-de-espera`,
+            icon: FiClock,
+            label: "Abrir fila",
+          },
+          {
+            title: "Reservas",
+            description:
+              "Organize reservas por horário, mesa e quantidade de pessoas.",
+            href: `${basePath}/reservas`,
+            icon: FiCalendar,
+            label: "Gerenciar reservas",
+          },
+          {
+            title: "Menu digital",
+            description:
+              "Cadastre categorias, pratos, preços e disponibilidade.",
+            href: `${basePath}/menu`,
+            icon: FiBriefcase,
+            label: "Gerenciar menu",
+          },
+          {
+            title: "Configurações",
+            description:
+              "Configure o funcionamento e a publicação do restaurante.",
+            href: `${basePath}/configuracoes`,
+            icon: FiSettings,
+            label: "Configurar restaurante",
+          },
+        ]
+      : [
+          {
+            title: "Agenda",
+            description:
+              "Consulte os horários, crie agendamentos e organize seus atendimentos.",
+            href: `${basePath}/agenda`,
+            icon: FiCalendar,
+            label: "Abrir agenda",
+          },
+          {
+            title: "Serviços",
+            description:
+              "Gerencie os serviços oferecidos, a duração e os preços.",
+            href: `${basePath}/servicos`,
+            icon: FiBriefcase,
+            label: "Gerenciar serviços",
+          },
+          {
+            title: "Clientes",
+            description:
+              "Consulte e organize os clientes cadastrados neste negócio.",
+            href: `${basePath}/clientes`,
+            icon: FiUsers,
+            label: "Gerenciar clientes",
+          },
+          {
+            title: "Configurações",
+            description:
+              "Prepare as regras de reserva, o fuso horário e as preferências.",
+            href: `${basePath}/configuracoes`,
+            icon: FiSettings,
+            label: "Configurar negócio",
+          },
+        ];
 
   return (
     <DashboardLayout

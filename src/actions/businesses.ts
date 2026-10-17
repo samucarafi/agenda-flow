@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import mongoose from "mongoose";
 import { z } from "zod";
-
+import RestaurantTable from "@/models/RestaurantTable";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import Business, { BUSINESS_CATEGORIES } from "@/models/Business";
@@ -294,10 +294,10 @@ export async function saveBusinessSettings(formData: FormData) {
   const parsed = schema.safeParse({
     openingTime: String(formData.get("openingTime") ?? ""),
     closingTime: String(formData.get("closingTime") ?? ""),
-    slotIntervalMinutes: formData.get("slotIntervalMinutes"),
-    minAdvanceMinutes: formData.get("minAdvanceMinutes"),
-    maxDaysInAdvance: formData.get("maxDaysInAdvance"),
-    confirmationMode: formData.get("confirmationMode"),
+    slotIntervalMinutes: formData.get("slotIntervalMinutes") ?? "30",
+    minAdvanceMinutes: formData.get("minAdvanceMinutes") ?? "60",
+    maxDaysInAdvance: formData.get("maxDaysInAdvance") ?? "60",
+    confirmationMode: formData.get("confirmationMode") ?? "manual",
 
     postalCode: String(
       formData.get("addressZipCode") ?? formData.get("postalCode") ?? "",
@@ -355,7 +355,6 @@ export async function saveBusinessSettings(formData: FormData) {
     district,
     city,
     state,
-    reference,
     primaryColor,
     accentColor,
     themeTemplate,
@@ -379,13 +378,24 @@ export async function saveBusinessSettings(formData: FormData) {
     }
 
     if (intent === "publish") {
-      const activeServices = await Service.countDocuments({
-        businessId: business._id,
-        active: true,
-      });
+      if (business.category === "restaurant") {
+        const activeTables = await RestaurantTable.countDocuments({
+          businessId: business._id,
+          active: true,
+        });
 
-      if (activeServices === 0) {
-        redirect(`${settingsUrl}?error=services`);
+        if (activeTables === 0) {
+          redirect(`${settingsUrl}?error=tables`);
+        }
+      } else {
+        const activeServices = await Service.countDocuments({
+          businessId: business._id,
+          active: true,
+        });
+
+        if (activeServices === 0) {
+          redirect(`${settingsUrl}?error=services`);
+        }
       }
 
       business.set("status", "active");

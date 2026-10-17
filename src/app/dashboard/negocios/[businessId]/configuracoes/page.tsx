@@ -7,8 +7,8 @@ import Business from "@/models/Business";
 import Service from "@/models/Service";
 import { saveBusinessSettings } from "@/actions/businesses";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import RestaurantTable from "@/models/RestaurantTable";
 import { BusinessGalleryManager } from "@/components/dashboard/businesses/BusinessGalleryManager";
-import { FiMapPin } from "react-icons/fi";
 import { BusinessAddressFields } from "@/components/dashboard/businesses/BusinessAddressFields";
 interface PageProps {
   params: Promise<{ businessId: string }>;
@@ -58,6 +58,16 @@ export default async function BusinessSettingsPage({
     minAdvanceMinutes: 60,
     maxDaysInAdvance: 60,
   };
+  const isRestaurant = business.category === "restaurant";
+
+  const activeTables = isRestaurant
+    ? await RestaurantTable.countDocuments({
+        businessId: business._id,
+        active: true,
+      })
+    : 0;
+
+  const canPublish = isRestaurant ? activeTables > 0 : activeServices > 0;
 
   const theme = business.theme ?? {
     template: "default",
@@ -100,8 +110,9 @@ export default async function BusinessSettingsPage({
               {business.name}
             </h1>
             <p className="mt-2 text-sm leading-6 text-slate-400">
-              Configure os horários e as regras de agendamento antes de publicar
-              a página do seu negócio.
+              {isRestaurant
+                ? "Configure o funcionamento, o endereço e a página pública do restaurante."
+                : "Configure os horários e as regras de agendamento antes de publicar a página do seu negócio."}
             </p>
           </header>
 
@@ -113,6 +124,8 @@ export default async function BusinessSettingsPage({
               {error === "invalid" &&
                 "Confira os dados informados e tente novamente."}
               {error === "address" && "Informe um CEP válido com 8 números."}
+              {error === "tables" &&
+                "Cadastre pelo menos uma mesa ativa antes de publicar o restaurante."}
               {error === "days" &&
                 "Selecione pelo menos um dia válido de funcionamento."}
               {error === "hours" &&
@@ -124,6 +137,7 @@ export default async function BusinessSettingsPage({
               {![
                 "invalid",
                 "days",
+                "tables",
                 "hours",
                 "services",
                 "address",
@@ -280,97 +294,127 @@ export default async function BusinessSettingsPage({
                   />
                 </label>
 
-                <label className="text-sm">
-                  <span className="mb-2 block text-slate-300">
-                    Intervalo dos horários
-                  </span>
-                  <select
-                    name="slotIntervalMinutes"
-                    defaultValue={availability.slotIntervalMinutes}
-                    className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white"
-                  >
-                    <option value="15">15 minutos</option>
-                    <option value="30">30 minutos</option>
-                    <option value="60">60 minutos</option>
-                  </select>
-                </label>
+                {!isRestaurant && (
+                  <label className="text-sm">
+                    <span className="mb-2 block text-slate-300">
+                      Intervalo dos horários
+                    </span>
+
+                    <select
+                      name="slotIntervalMinutes"
+                      defaultValue={availability.slotIntervalMinutes}
+                      className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white"
+                    >
+                      <option value="15">15 minutos</option>
+                      <option value="30">30 minutos</option>
+                      <option value="60">60 minutos</option>
+                    </select>
+                  </label>
+                )}
               </div>
             </section>
 
-            <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-7">
-              <h2 className="text-lg font-semibold">Regras de agendamento</h2>
+            {!isRestaurant && (
+              <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-7">
+                <h2 className="text-lg font-semibold">Regras de agendamento</h2>
 
-              <div className="mt-5 grid gap-5 sm:grid-cols-2">
-                <label className="text-sm">
-                  <span className="mb-2 block text-slate-300">
-                    Antecedência mínima
-                  </span>
-                  <select
-                    name="minAdvanceMinutes"
-                    defaultValue={booking.minAdvanceMinutes}
-                    className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white"
-                  >
-                    <option value="0">Sem antecedência mínima</option>
-                    <option value="30">30 minutos</option>
-                    <option value="60">1 hora</option>
-                    <option value="120">2 horas</option>
-                    <option value="1440">24 horas</option>
-                  </select>
-                </label>
+                <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                  <label className="text-sm">
+                    <span className="mb-2 block text-slate-300">
+                      Antecedência mínima
+                    </span>
+                    <select
+                      name="minAdvanceMinutes"
+                      defaultValue={booking.minAdvanceMinutes}
+                      className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white"
+                    >
+                      <option value="0">Sem antecedência mínima</option>
+                      <option value="30">30 minutos</option>
+                      <option value="60">1 hora</option>
+                      <option value="120">2 horas</option>
+                      <option value="1440">24 horas</option>
+                    </select>
+                  </label>
 
-                <label className="text-sm">
-                  <span className="mb-2 block text-slate-300">
-                    Agendamentos com até
-                  </span>
-                  <select
-                    name="maxDaysInAdvance"
-                    defaultValue={booking.maxDaysInAdvance}
-                    className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white"
-                  >
-                    <option value="7">7 dias de antecedência</option>
-                    <option value="15">15 dias</option>
-                    <option value="30">30 dias</option>
-                    <option value="60">60 dias</option>
-                    <option value="90">90 dias</option>
-                    <option value="180">180 dias</option>
-                    <option value="365">365 dias</option>
-                  </select>
-                </label>
+                  <label className="text-sm">
+                    <span className="mb-2 block text-slate-300">
+                      Agendamentos com até
+                    </span>
+                    <select
+                      name="maxDaysInAdvance"
+                      defaultValue={booking.maxDaysInAdvance}
+                      className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white"
+                    >
+                      <option value="7">7 dias de antecedência</option>
+                      <option value="15">15 dias</option>
+                      <option value="30">30 dias</option>
+                      <option value="60">60 dias</option>
+                      <option value="90">90 dias</option>
+                      <option value="180">180 dias</option>
+                      <option value="365">365 dias</option>
+                    </select>
+                  </label>
 
-                <label className="text-sm sm:col-span-2">
-                  <span className="mb-2 block text-slate-300">
-                    Confirmação dos agendamentos
-                  </span>
-                  <select
-                    name="confirmationMode"
-                    defaultValue={booking.confirmationMode}
-                    className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white"
-                  >
-                    <option value="manual">
-                      Manual — preciso confirmar cada solicitação
-                    </option>
-                    <option value="automatic">
-                      Automática — confirmar ao reservar
-                    </option>
-                  </select>
-                </label>
-              </div>
-            </section>
+                  <label className="text-sm sm:col-span-2">
+                    <span className="mb-2 block text-slate-300">
+                      Confirmação dos agendamentos
+                    </span>
+                    <select
+                      name="confirmationMode"
+                      defaultValue={booking.confirmationMode}
+                      className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white"
+                    >
+                      <option value="manual">
+                        Manual — preciso confirmar cada solicitação
+                      </option>
+                      <option value="automatic">
+                        Automática — confirmar ao reservar
+                      </option>
+                    </select>
+                  </label>
+                </div>
+              </section>
+            )}
 
             <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-7">
               <h2 className="text-lg font-semibold">Publicação</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-400">
-                {activeServices > 0
-                  ? `${activeServices} serviço(s) ativo(s) encontrado(s). Você pode salvar as configurações ou publicar quando estiver pronto.`
-                  : "Antes de publicar, cadastre pelo menos um serviço ativo."}
-              </p>
 
-              <Link
-                href={`/dashboard/negocios/${businessId}/servicos`}
-                className="mt-4 inline-flex rounded-xl border border-cyan-400/30 px-4 py-2.5 text-sm font-semibold text-cyan-300 hover:bg-cyan-400/10"
-              >
-                Gerenciar serviços →
-              </Link>
+              {isRestaurant ? (
+                activeTables > 0 ? (
+                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                    Seu restaurante está pronto para ser publicado.
+                  </p>
+                ) : (
+                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                    Cadastre pelo menos uma mesa ativa antes de publicar o
+                    restaurante.
+                  </p>
+                )
+              ) : activeServices > 0 ? (
+                <p className="mt-2 text-sm leading-6 text-slate-400">
+                  Seu negócio está pronto para ser publicado.
+                </p>
+              ) : (
+                <p className="mt-2 text-sm leading-6 text-slate-400">
+                  Cadastre pelo menos um serviço ativo antes de publicar.
+                </p>
+              )}
+
+              {isRestaurant ? (
+                <Link
+                  className="mt-4 inline-flex rounded-xl border border-cyan-400/30 px-4 py-2.5 text-sm font-semibold text-cyan-300 hover:bg-cyan-400/10"
+                  href={`/dashboard/negocios/${businessId}/mesas`}
+                >
+                  Gerenciar mesas
+                </Link>
+              ) : (
+                <Link
+                  className="mt-4 inline-flex rounded-xl border border-cyan-400/30 px-4 py-2.5 text-sm font-semibold text-cyan-300 hover:bg-cyan-400/10"
+                  href={`/dashboard/negocios/${businessId}/servicos`}
+                >
+                  Gerenciar serviços
+                </Link>
+              )}
 
               <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                 <button
@@ -386,7 +430,7 @@ export default async function BusinessSettingsPage({
                   type="submit"
                   name="intent"
                   value="publish"
-                  disabled={activeServices === 0}
+                  disabled={!canPublish}
                   className="rounded-xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Publicar negócio
