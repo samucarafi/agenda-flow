@@ -241,47 +241,83 @@ export async function saveBusinessSettings(formData: FormData) {
     .map((value) => Number(value));
 
   const schema = z.object({
-    openingTime: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/),
-    closingTime: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/),
+    openingTime: z
+      .string()
+      .regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/, "Horário de abertura inválido."),
+    closingTime: z
+      .string()
+      .regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/, "Horário de fechamento inválido."),
+
     slotIntervalMinutes: z.coerce
       .number()
       .int()
       .refine((value) => [15, 30, 60].includes(value)),
+
     minAdvanceMinutes: z.coerce.number().int().min(0).max(10080),
     maxDaysInAdvance: z.coerce.number().int().min(1).max(365),
     confirmationMode: z.enum(["manual", "automatic"]),
-    address: z
+
+    postalCode: z
       .string()
       .trim()
-      .max(300, "O endereço deve ter no máximo 300 caracteres.")
-      .default(""),
+      .regex(/^\d{5}-?\d{3}$/, "Informe um CEP válido com 8 números."),
+
+    street: z.string().trim().min(2, "Informe o nome da rua.").max(150),
+    number: z.string().trim().min(1, "Informe o número do endereço.").max(20),
+    complement: z.string().trim().max(100).default(""),
+    district: z.string().trim().min(2, "Informe o bairro.").max(100),
+    city: z.string().trim().min(2, "Informe a cidade.").max(100),
+
+    state: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .pipe(
+        z.string().regex(/^[A-Z]{2}$/, "Informe a sigla do estado. Ex.: RJ."),
+      ),
+
+    reference: z.string().trim().max(150).default(""),
+
     primaryColor: z
       .string()
       .regex(/^#[0-9a-fA-F]{6}$/)
       .default("#0F172A"),
+
     accentColor: z
       .string()
       .regex(/^#[0-9a-fA-F]{6}$/)
       .default("#06B6D4"),
+
     themeTemplate: z.enum(["default", "minimal", "bold"]).default("default"),
   });
 
   const parsed = schema.safeParse({
-    openingTime: formData.get("openingTime"),
-    closingTime: formData.get("closingTime"),
+    openingTime: String(formData.get("openingTime") ?? ""),
+    closingTime: String(formData.get("closingTime") ?? ""),
     slotIntervalMinutes: formData.get("slotIntervalMinutes"),
     minAdvanceMinutes: formData.get("minAdvanceMinutes"),
     maxDaysInAdvance: formData.get("maxDaysInAdvance"),
     confirmationMode: formData.get("confirmationMode"),
-    primaryColor: formData.get("primaryColor"),
-    address: formData.get("address") ?? "",
-    accentColor: formData.get("accentColor"),
-    themeTemplate: formData.get("themeTemplate"),
+
+    postalCode: String(formData.get("postalCode") ?? ""),
+    street: String(formData.get("street") ?? ""),
+    number: String(formData.get("number") ?? ""),
+    complement: String(formData.get("complement") ?? ""),
+    district: String(formData.get("district") ?? ""),
+    city: String(formData.get("city") ?? ""),
+    state: String(formData.get("state") ?? ""),
+    reference: String(formData.get("reference") ?? ""),
+
+    primaryColor: String(formData.get("primaryColor") ?? "#0F172A"),
+    accentColor: String(formData.get("accentColor") ?? "#06B6D4"),
+    themeTemplate: String(formData.get("themeTemplate") ?? "default"),
   });
 
   const settingsUrl = `/dashboard/negocios/${businessId}/configuracoes`;
 
   if (!parsed.success) {
+    console.error("saveBusinessSettings validation:", parsed.error.flatten());
+
     redirect(`${settingsUrl}?error=invalid`);
   }
 
@@ -298,9 +334,16 @@ export async function saveBusinessSettings(formData: FormData) {
     closingTime,
     slotIntervalMinutes,
     minAdvanceMinutes,
-    address,
     maxDaysInAdvance,
     confirmationMode,
+    postalCode,
+    street,
+    number,
+    complement,
+    district,
+    city,
+    state,
+    reference,
     primaryColor,
     accentColor,
     themeTemplate,
@@ -313,6 +356,7 @@ export async function saveBusinessSettings(formData: FormData) {
   try {
     await connectToDatabase();
 
+    // Garante que somente o proprietário possa alterar este negócio.
     const business = await Business.findOne({
       _id: businessId,
       ownerId: user.id,
@@ -336,6 +380,7 @@ export async function saveBusinessSettings(formData: FormData) {
       business.set("bookingSettings.enabled", true);
     }
 
+    // Horários de atendimento.
     business.set("availability", {
       workingDays,
       openingTime,
@@ -343,19 +388,56 @@ export async function saveBusinessSettings(formData: FormData) {
       slotIntervalMinutes,
     });
 
+    // Regras de agendamento.
     business.set("bookingSettings.minAdvanceMinutes", minAdvanceMinutes);
     business.set("bookingSettings.maxDaysInAdvance", maxDaysInAdvance);
     business.set("bookingSettings.confirmationMode", confirmationMode);
+
+    // Aparência da página pública.
     business.set("theme.template", themeTemplate);
     business.set("theme.primaryColor", primaryColor);
     business.set("theme.accentColor", accentColor);
-    business.set("address", address);
+
+    // Normaliza o CEP para armazenar somente números.
+    const normalizedPostalCode = postalCode.replace(/\D/g, "");
+
+    if (normalizedPostalCode.length !== 8) {
+      redirect(`${settingsUrl}?error=address`);
+    }
+
+    // Endereço estruturado: permite exibir cada campo e montar a busca do Maps.
+    const location = {
+      postalCode: normalizedPostalCode,
+      street,
+      number,
+      complement,
+      district,
+      city,
+      state,
+      reference,
+    };
+
+    const fullAddress = [
+      `${street}, ${number}`,
+      complement,
+      district,
+      `${city} - ${state}`,
+      `CEP ${normalizedPostalCode}`,
+      reference ? `Referência: ${reference}` : "",
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    // Os dois campos são gravados no documento do negócio.
+    business.set("location", location);
+    business.set("address", fullAddress);
 
     await business.save();
 
+    // Atualiza as páginas que dependem das configurações.
     revalidatePath("/dashboard/negocios");
     revalidatePath(`/dashboard/negocios/${businessId}`);
-    revalidatePath(`${settingsUrl}`);
+    revalidatePath(settingsUrl);
     revalidatePath(`/b/${business.slug}`);
     revalidatePath(`/b/${business.slug}/agendar`);
   } catch (error) {
@@ -364,6 +446,7 @@ export async function saveBusinessSettings(formData: FormData) {
         ? String(error.digest)
         : "";
 
+    // O Next.js usa redirect por meio de uma exceção interna.
     if (digest.startsWith("NEXT_REDIRECT")) {
       throw error;
     }

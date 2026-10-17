@@ -30,6 +30,16 @@ export interface IBusiness {
     accentColor: string;
     logoUrl: string;
   };
+  location?: {
+    postalCode: string;
+    street: string;
+    number: string;
+    complement: string;
+    district: string;
+    city: string;
+    state: string;
+    reference: string;
+  };
 
   bookingSettings: {
     enabled: boolean;
@@ -38,7 +48,15 @@ export interface IBusiness {
     maxDaysInAdvance: number;
   };
 
-  address: string;
+  address: {
+    zipCode: string;
+    street: string;
+    number: string;
+    complement: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+  };
 
   availability: {
     workingDays: number[];
@@ -50,7 +68,24 @@ export interface IBusiness {
   createdAt: Date;
   updatedAt: Date;
 }
-
+const businessAddressSchema = new Schema(
+  {
+    zipCode: { type: String, trim: true, default: "", maxlength: 9 },
+    street: { type: String, trim: true, default: "", maxlength: 150 },
+    number: { type: String, trim: true, default: "", maxlength: 20 },
+    complement: { type: String, trim: true, default: "", maxlength: 100 },
+    neighborhood: { type: String, trim: true, default: "", maxlength: 100 },
+    city: { type: String, trim: true, default: "", maxlength: 100 },
+    state: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      default: "",
+      maxlength: 2,
+    },
+  },
+  { _id: false },
+);
 const businessSchema = new Schema<IBusiness>(
   {
     ownerId: {
@@ -69,10 +104,8 @@ const businessSchema = new Schema<IBusiness>(
     },
 
     address: {
-      type: String,
-      trim: true,
-      maxlength: 300,
-      default: "",
+      type: businessAddressSchema,
+      default: () => ({}),
     },
 
     slug: {
@@ -82,6 +115,22 @@ const businessSchema = new Schema<IBusiness>(
       lowercase: true,
       trim: true,
       match: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+    },
+    location: {
+      postalCode: { type: String, trim: true, maxlength: 9, default: "" },
+      street: { type: String, trim: true, maxlength: 150, default: "" },
+      number: { type: String, trim: true, maxlength: 20, default: "" },
+      complement: { type: String, trim: true, maxlength: 100, default: "" },
+      district: { type: String, trim: true, maxlength: 100, default: "" },
+      city: { type: String, trim: true, maxlength: 100, default: "" },
+      state: {
+        type: String,
+        trim: true,
+        uppercase: true,
+        maxlength: 2,
+        default: "",
+      },
+      reference: { type: String, trim: true, maxlength: 150, default: "" },
     },
     gallery: {
       type: [
