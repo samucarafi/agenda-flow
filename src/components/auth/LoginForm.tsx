@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState } from "react";
 import { FiArrowRight, FiLoader, FiLock, FiMail } from "react-icons/fi";
 
 import { login, type AuthState } from "@/actions/auth";
@@ -12,16 +11,7 @@ const initialState: AuthState = {
 };
 
 export function LoginForm() {
-  const router = useRouter();
-
   const [state, formAction, pending] = useActionState(login, initialState);
-
-  useEffect(() => {
-    if (state.success) {
-      router.replace("/dashboard");
-      router.refresh();
-    }
-  }, [state.success, router]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f6f7fb] px-4 py-8">

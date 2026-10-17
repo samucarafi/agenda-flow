@@ -4,7 +4,13 @@ import Link from "next/link";
 import { FiArrowRight, FiMenu, FiX } from "react-icons/fi";
 import { useState } from "react";
 
-export function Navbar() {
+interface NavbarProps {
+  user: {
+    role: "owner" | "client";
+  } | null;
+}
+
+export function Navbar({ user }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -48,17 +54,33 @@ export function Navbar() {
 
           <div className="hidden items-center gap-3 md:flex">
             <Link
-              href="/entrar"
+              href={
+                user
+                  ? user.role === "owner"
+                    ? "/dashboard"
+                    : "/cliente"
+                  : "/entrar"
+              }
               className="text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-950"
             >
-              Entrar
+              {user ? "Meu painel" : "Entrar"}
             </Link>
 
             <Link
-              href="/agenda"
+              href={
+                user
+                  ? user.role === "owner"
+                    ? "/dashboard"
+                    : "/cliente"
+                  : "/criar-conta"
+              }
               className="flex items-center gap-2 rounded-xl bg-[#635bff] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#5148e8]"
             >
-              Começar agora
+              {user
+                ? user.role === "owner"
+                  ? "Acessar painel"
+                  : "Meus agendamentos"
+                : "Começar agora"}
               <FiArrowRight size={15} />
             </Link>
           </div>
