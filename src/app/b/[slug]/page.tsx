@@ -59,11 +59,12 @@ export default async function PublicBusinessPage({ params }: PageProps) {
 
   return (
     <main
-      className="min-h-screen bg-slate-950 text-white"
+      className="min-h-screen text-white"
       style={
         {
           "--business-primary": primaryColor,
           "--business-accent": accentColor,
+          backgroundColor: primaryColor,
         } as React.CSSProperties
       }
     >

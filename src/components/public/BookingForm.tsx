@@ -28,6 +28,7 @@ type Props = {
   business: BusinessItem;
   services: ServiceItem[];
   initialServiceId: string;
+  previewMode?: boolean;
 };
 
 function todayString() {
@@ -45,7 +46,12 @@ function currency(value: number) {
   }).format(value);
 }
 
-export function BookingForm({ business, services, initialServiceId }: Props) {
+export function BookingForm({
+  business,
+  services,
+  initialServiceId,
+  previewMode = false,
+}: Props) {
   const [serviceId, setServiceId] = useState(initialServiceId);
   const [date, setDate] = useState(todayString);
   const [slots, setSlots] = useState<string[]>([]);
@@ -290,14 +296,26 @@ export function BookingForm({ business, services, initialServiceId }: Props) {
             {message}
           </p>
         )}
-
+        {previewMode && (
+          <p
+            role="status"
+            className="mt-5 rounded-xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-100"
+          >
+            Você está visualizando a experiência do cliente. Nenhuma reserva
+            será criada neste modo.
+          </p>
+        )}
         <button
           type="submit"
-          disabled={submitting || loadingSlots || !selectedTime}
+          disabled={submitting || loadingSlots || !selectedTime || previewMode}
           className="mt-6 w-full rounded-xl px-5 py-3.5 font-semibold text-slate-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
           style={{ backgroundColor: business.accentColor }}
         >
-          {submitting ? "Enviando agendamento..." : "Confirmar agendamento"}
+          {previewMode
+            ? "Pré-visualização — reserva desativada"
+            : submitting
+              ? "Enviando agendamento..."
+              : "Confirmar agendamento"}
         </button>
       </section>
 

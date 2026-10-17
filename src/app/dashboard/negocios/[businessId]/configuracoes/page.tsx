@@ -56,6 +56,12 @@ export default async function BusinessSettingsPage({
     maxDaysInAdvance: 60,
   };
 
+  const theme = business.theme ?? {
+    template: "default",
+    primaryColor: "#0F172A",
+    accentColor: "#06B6D4",
+  };
+
   const days = [
     { value: 1, label: "Segunda-feira" },
     { value: 2, label: "Terça-feira" },
@@ -134,7 +140,64 @@ export default async function BusinessSettingsPage({
 
         <form action={saveBusinessSettings} className="space-y-6">
           <input type="hidden" name="businessId" value={businessId} />
+          <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-7">
+            <h2 className="text-lg font-semibold">Identidade visual</h2>
 
+            <p className="mt-1 text-sm leading-6 text-slate-400">
+              Personalize as cores usadas na página pública do seu negócio.
+            </p>
+
+            <div className="mt-5 grid gap-5 sm:grid-cols-2">
+              <label className="text-sm">
+                <span className="mb-2 block text-slate-300">Cor principal</span>
+                <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-slate-900 p-2">
+                  <input
+                    type="color"
+                    name="primaryColor"
+                    defaultValue={theme.primaryColor}
+                    className="h-10 w-12 cursor-pointer rounded-lg border-0 bg-transparent"
+                  />
+                  <span className="text-xs text-slate-400">
+                    Fundo principal da página
+                  </span>
+                </div>
+              </label>
+
+              <label className="text-sm">
+                <span className="mb-2 block text-slate-300">
+                  Cor de destaque
+                </span>
+                <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-slate-900 p-2">
+                  <input
+                    type="color"
+                    name="accentColor"
+                    defaultValue={theme.accentColor}
+                    className="h-10 w-12 cursor-pointer rounded-lg border-0 bg-transparent"
+                  />
+                  <span className="text-xs text-slate-400">
+                    Botões e elementos destacados
+                  </span>
+                </div>
+              </label>
+
+              <label className="text-sm sm:col-span-2">
+                <span className="mb-2 block text-slate-300">Estilo</span>
+                <select
+                  name="themeTemplate"
+                  defaultValue={
+                    ["default", "minimal", "bold"].includes(theme.template)
+                      ? theme.template
+                      : "default"
+                  }
+                  className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white"
+                >
+                  <option value="default">Clássico</option>
+                  <option value="minimal">Minimalista</option>
+                  <option value="bold">Marcante</option>
+                </select>
+              </label>
+            </div>
+          </section>
           <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-7">
             <h2 className="text-lg font-semibold">Dias de funcionamento</h2>
             <p className="mt-1 text-sm text-slate-400">

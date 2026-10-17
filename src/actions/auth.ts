@@ -90,7 +90,15 @@ export async function login(
     };
   }
 
-  redirect(user.role === "owner" ? "/dashboard" : "/cliente");
+  const requestedNext = String(formData.get("next") ?? "");
+
+  const safeNext = /^\/b\/[a-z0-9-]+\/agendar(?:\?service=[a-f\d]{24})?$/i.test(
+    requestedNext,
+  )
+    ? requestedNext
+    : null;
+
+  redirect(user.role === "owner" ? "/dashboard" : (safeNext ?? "/cliente"));
 }
 
 export async function register(

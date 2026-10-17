@@ -250,6 +250,15 @@ export async function saveBusinessSettings(formData: FormData) {
     minAdvanceMinutes: z.coerce.number().int().min(0).max(10080),
     maxDaysInAdvance: z.coerce.number().int().min(1).max(365),
     confirmationMode: z.enum(["manual", "automatic"]),
+    primaryColor: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/)
+      .default("#0F172A"),
+    accentColor: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/)
+      .default("#06B6D4"),
+    themeTemplate: z.enum(["default", "minimal", "bold"]).default("default"),
   });
 
   const parsed = schema.safeParse({
@@ -259,6 +268,9 @@ export async function saveBusinessSettings(formData: FormData) {
     minAdvanceMinutes: formData.get("minAdvanceMinutes"),
     maxDaysInAdvance: formData.get("maxDaysInAdvance"),
     confirmationMode: formData.get("confirmationMode"),
+    primaryColor: formData.get("primaryColor"),
+    accentColor: formData.get("accentColor"),
+    themeTemplate: formData.get("themeTemplate"),
   });
 
   const settingsUrl = `/dashboard/negocios/${businessId}/configuracoes`;
@@ -282,6 +294,9 @@ export async function saveBusinessSettings(formData: FormData) {
     minAdvanceMinutes,
     maxDaysInAdvance,
     confirmationMode,
+    primaryColor,
+    accentColor,
+    themeTemplate,
   } = parsed.data;
 
   if (openingTime >= closingTime) {
@@ -324,6 +339,9 @@ export async function saveBusinessSettings(formData: FormData) {
     business.set("bookingSettings.minAdvanceMinutes", minAdvanceMinutes);
     business.set("bookingSettings.maxDaysInAdvance", maxDaysInAdvance);
     business.set("bookingSettings.confirmationMode", confirmationMode);
+    business.set("theme.template", themeTemplate);
+    business.set("theme.primaryColor", primaryColor);
+    business.set("theme.accentColor", accentColor);
 
     await business.save();
 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   FiBell,
   FiCalendar,
@@ -90,6 +91,29 @@ export function Features() {
             );
           })}
         </div>
+      </div>
+      <div
+        id="beneficios"
+        className="mt-12 scroll-mt-28 rounded-3xl bg-[#635bff]/5 p-6 sm:p-10"
+      >
+        <p className="text-sm font-semibold text-[#635bff]">Benefícios</p>
+
+        <h2 className="mt-2 max-w-2xl text-2xl font-bold tracking-tight text-zinc-950 sm:text-3xl">
+          Menos tempo organizando. Mais tempo atendendo.
+        </h2>
+
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-600 sm:text-base">
+          Centralize clientes, serviços e horários em um só lugar e ofereça aos
+          seus clientes uma experiência de reserva mais simples.
+        </p>
+
+        <Link
+          href="/criar-conta"
+          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#635bff] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#5148e8]"
+        >
+          Começar agora
+          <FiArrowUpRight size={16} />
+        </Link>
       </div>
     </section>
   );

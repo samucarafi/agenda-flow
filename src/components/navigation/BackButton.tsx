@@ -1,6 +1,4 @@
-"use client";
-
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { FiArrowLeft } from "react-icons/fi";
 
 interface BackButtonProps {
@@ -12,22 +10,13 @@ export function BackButton({
   fallbackHref,
   label = "Voltar",
 }: BackButtonProps) {
-  const router = useRouter();
-
   return (
-    <button
-      type="button"
-      onClick={() => {
-        if (window.history.length > 1) {
-          router.back();
-        } else {
-          router.push(fallbackHref);
-        }
-      }}
-      className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#635bff]"
+    <Link
+      href={fallbackHref}
+      className="inline-flex min-h-9 shrink-0 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#635bff] focus-visible:ring-offset-2"
     >
-      <FiArrowLeft size={15} />
+      <FiArrowLeft size={15} aria-hidden="true" />
       {label}
-    </button>
+    </Link>
   );
 }

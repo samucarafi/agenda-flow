@@ -133,7 +133,7 @@ export function Navbar({ user }: NavbarProps) {
               </Link>
 
               <Link
-                href="#agendar"
+                href="/criar-conta"
                 onClick={() => setIsOpen(false)}
                 className="mt-1 flex items-center justify-center gap-2 rounded-xl bg-[#635bff] px-4 py-3 text-sm font-semibold text-white"
               >

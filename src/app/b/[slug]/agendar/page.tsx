@@ -7,7 +7,7 @@ import { BookingForm } from "@/components/public/BookingForm";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ service?: string }>;
+  searchParams: Promise<{ service?: string; preview?: string }>;
 }
 
 export default async function PublicBookingPage({
@@ -15,7 +15,7 @@ export default async function PublicBookingPage({
   searchParams,
 }: PageProps) {
   const { slug } = await params;
-  const { service: serviceId } = await searchParams;
+  const { service: serviceId, preview } = await searchParams;
 
   await connectToDatabase();
 
@@ -49,7 +49,9 @@ export default async function PublicBookingPage({
     redirect(`/entrar?next=${encodeURIComponent(next)}`);
   }
 
-  if (user.role !== "client") {
+  const previewMode = user.role === "owner" && preview === "1";
+
+  if (user.role !== "client" && !previewMode) {
     redirect("/dashboard/negocios");
   }
 
@@ -100,6 +102,7 @@ export default async function PublicBookingPage({
             business={serializedBusiness}
             services={serializedServices}
             initialServiceId={selectedService._id.toString()}
+            previewMode={previewMode}
           />
         </div>
       </div>
