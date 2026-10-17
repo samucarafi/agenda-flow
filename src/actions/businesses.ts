@@ -250,6 +250,11 @@ export async function saveBusinessSettings(formData: FormData) {
     minAdvanceMinutes: z.coerce.number().int().min(0).max(10080),
     maxDaysInAdvance: z.coerce.number().int().min(1).max(365),
     confirmationMode: z.enum(["manual", "automatic"]),
+    address: z
+      .string()
+      .trim()
+      .max(300, "O endereço deve ter no máximo 300 caracteres.")
+      .default(""),
     primaryColor: z
       .string()
       .regex(/^#[0-9a-fA-F]{6}$/)
@@ -269,6 +274,7 @@ export async function saveBusinessSettings(formData: FormData) {
     maxDaysInAdvance: formData.get("maxDaysInAdvance"),
     confirmationMode: formData.get("confirmationMode"),
     primaryColor: formData.get("primaryColor"),
+    address: formData.get("address") ?? "",
     accentColor: formData.get("accentColor"),
     themeTemplate: formData.get("themeTemplate"),
   });
@@ -292,6 +298,7 @@ export async function saveBusinessSettings(formData: FormData) {
     closingTime,
     slotIntervalMinutes,
     minAdvanceMinutes,
+    address,
     maxDaysInAdvance,
     confirmationMode,
     primaryColor,
@@ -342,6 +349,7 @@ export async function saveBusinessSettings(formData: FormData) {
     business.set("theme.template", themeTemplate);
     business.set("theme.primaryColor", primaryColor);
     business.set("theme.accentColor", accentColor);
+    business.set("address", address);
 
     await business.save();
 

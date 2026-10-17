@@ -38,6 +38,8 @@ export interface IBusiness {
     maxDaysInAdvance: number;
   };
 
+  address: string;
+
   availability: {
     workingDays: number[];
     openingTime: string;
@@ -64,6 +66,13 @@ const businessSchema = new Schema<IBusiness>(
       trim: true,
       minlength: 2,
       maxlength: 100,
+    },
+
+    address: {
+      type: String,
+      trim: true,
+      maxlength: 300,
+      default: "",
     },
 
     slug: {

@@ -13,7 +13,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { Appointment } from "@/models/Appointment";
 import Client from "@/models/Client";
 import Business from "@/models/Business";
-
+import { LogoutButton } from "@/components/auth/LogoutButton";
 export const dynamic = "force-dynamic";
 
 const statusLabels: Record<string, string> = {
@@ -143,13 +143,19 @@ export default async function ClientPage() {
             </p>
           </div>
 
-          <Link
-            href="#estabelecimentos"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
-          >
-            <FiSearch size={17} />
-            Encontrar estabelecimento
-          </Link>
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+            <Link
+              href="#estabelecimentos"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
+            >
+              <FiSearch size={17} />
+              Encontrar estabelecimento
+            </Link>
+
+            <div className="w-full sm:w-44">
+              <LogoutButton />
+            </div>
+          </div>
         </header>
 
         <section className="mt-9">

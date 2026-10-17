@@ -33,7 +33,7 @@ export default async function PublicBusinessPage({ params }: PageProps) {
     "bookingSettings.enabled": true,
   })
     .select(
-      "name slug category description timezone theme bookingSettings gallery",
+      "name slug category description address timezone theme bookingSettings gallery",
     )
     .lean();
 
@@ -116,6 +116,54 @@ export default async function PublicBusinessPage({ params }: PageProps) {
           </p>
         </div>
       </section>
+      {business.address?.trim() && (
+        <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
+          <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
+            <div>
+              <p
+                className="text-sm font-semibold tracking-wide"
+                style={{ color: accentColor }}
+              >
+                COMO CHEGAR
+              </p>
+
+              <h2 className="mt-2 text-2xl font-bold sm:text-3xl">
+                Visite nosso espaço
+              </h2>
+
+              <p className="mt-4 flex items-start gap-3 text-sm leading-6 text-slate-300">
+                <FiMapPin
+                  size={20}
+                  className="mt-0.5 shrink-0"
+                  style={{ color: accentColor }}
+                />
+                <span>{business.address}</span>
+              </p>
+
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(business.address)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-5 inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-slate-950 transition hover:opacity-90"
+                style={{ backgroundColor: accentColor }}
+              >
+                <FiMapPin size={17} />
+                Abrir no Google Maps
+              </a>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+              <iframe
+                title={`Mapa de localização de ${business.name}`}
+                src={`https://www.google.com/maps?q=${encodeURIComponent(business.address)}&output=embed`}
+                className="h-72 w-full sm:h-80"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
+          </div>
+        </section>
+      )}
 
       {(business.gallery?.length ?? 0) > 0 && (
         <section className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 sm:pt-14">

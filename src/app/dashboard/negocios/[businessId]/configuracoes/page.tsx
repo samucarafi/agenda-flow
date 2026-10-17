@@ -8,6 +8,7 @@ import Service from "@/models/Service";
 import { saveBusinessSettings } from "@/actions/businesses";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { BusinessGalleryManager } from "@/components/dashboard/businesses/BusinessGalleryManager";
+import { FiMapPin } from "react-icons/fi";
 
 interface PageProps {
   params: Promise<{ businessId: string }>;
@@ -158,6 +159,41 @@ export default async function BusinessSettingsPage({
 
           <form action={saveBusinessSettings} className="space-y-6">
             <input type="hidden" name="businessId" value={businessId} />
+            <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-7">
+              <div className="flex items-start gap-3">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-300">
+                  <FiMapPin size={21} />
+                </div>
+
+                <div>
+                  <h2 className="text-lg font-semibold">Localização</h2>
+                  <p className="mt-1 text-sm leading-6 text-slate-400">
+                    Informe o endereço para que seus clientes encontrem o
+                    estabelecimento.
+                  </p>
+                </div>
+              </div>
+
+              <label className="mt-5 block text-sm">
+                <span className="mb-2 block text-slate-300">
+                  Endereço completo
+                </span>
+
+                <input
+                  type="text"
+                  name="address"
+                  defaultValue={business.address ?? ""}
+                  maxLength={300}
+                  autoComplete="street-address"
+                  placeholder="Rua, número, bairro, cidade e estado"
+                  className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-400"
+                />
+
+                <span className="mt-2 block text-xs text-slate-500">
+                  Exemplo: Rua das Flores, 120, Centro, Niterói - RJ.
+                </span>
+              </label>
+            </section>
             <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-7">
               <h2 className="text-lg font-semibold">Identidade visual</h2>
 
