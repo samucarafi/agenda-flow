@@ -112,6 +112,7 @@ export default async function BusinessSettingsPage({
             >
               {error === "invalid" &&
                 "Confira os dados informados e tente novamente."}
+              {error === "address" && "Informe um CEP válido com 8 números."}
               {error === "days" &&
                 "Selecione pelo menos um dia válido de funcionamento."}
               {error === "hours" &&
@@ -120,9 +121,15 @@ export default async function BusinessSettingsPage({
                 "Cadastre pelo menos um serviço ativo antes de publicar."}
               {error === "save" &&
                 "Não foi possível salvar as configurações. Tente novamente."}
-              {!["invalid", "days", "hours", "services", "save"].includes(
-                error,
-              ) && "Ocorreu um erro ao processar as configurações."}
+              {![
+                "invalid",
+                "days",
+                "hours",
+                "services",
+                "address",
+                "save",
+              ].includes(error) &&
+                "Ocorreu um erro ao processar as configurações."}
             </div>
           )}
 

@@ -299,14 +299,26 @@ export async function saveBusinessSettings(formData: FormData) {
     maxDaysInAdvance: formData.get("maxDaysInAdvance"),
     confirmationMode: formData.get("confirmationMode"),
 
-    postalCode: String(formData.get("postalCode") ?? ""),
-    street: String(formData.get("street") ?? ""),
-    number: String(formData.get("number") ?? ""),
-    complement: String(formData.get("complement") ?? ""),
-    district: String(formData.get("district") ?? ""),
-    city: String(formData.get("city") ?? ""),
-    state: String(formData.get("state") ?? ""),
-    reference: String(formData.get("reference") ?? ""),
+    postalCode: String(
+      formData.get("addressZipCode") ?? formData.get("postalCode") ?? "",
+    ),
+    street: String(
+      formData.get("addressStreet") ?? formData.get("street") ?? "",
+    ),
+    number: String(
+      formData.get("addressNumber") ?? formData.get("number") ?? "",
+    ),
+    complement: String(
+      formData.get("addressComplement") ?? formData.get("complement") ?? "",
+    ),
+    district: String(
+      formData.get("addressNeighborhood") ?? formData.get("district") ?? "",
+    ),
+    city: String(formData.get("addressCity") ?? formData.get("city") ?? ""),
+    state: String(formData.get("addressState") ?? formData.get("state") ?? ""),
+    reference: String(
+      formData.get("addressReference") ?? formData.get("reference") ?? "",
+    ),
 
     primaryColor: String(formData.get("primaryColor") ?? "#0F172A"),
     accentColor: String(formData.get("accentColor") ?? "#06B6D4"),
@@ -405,8 +417,8 @@ export async function saveBusinessSettings(formData: FormData) {
       redirect(`${settingsUrl}?error=address`);
     }
 
-    // Endereço estruturado: permite exibir cada campo e montar a busca do Maps.
-    const location = {
+    // location é consumido pela página pública.
+    business.set("location", {
       postalCode: normalizedPostalCode,
       street,
       number,
@@ -415,22 +427,19 @@ export async function saveBusinessSettings(formData: FormData) {
       city,
       state,
       reference,
-    };
+    });
 
-    const fullAddress = [
-      `${street}, ${number}`,
+    // address corresponde ao objeto definido em Business.ts
+    // e ao formato esperado por BusinessAddressFields.
+    business.set("address", {
+      zipCode: normalizedPostalCode,
+      street,
+      number,
       complement,
-      district,
-      `${city} - ${state}`,
-      `CEP ${normalizedPostalCode}`,
-      reference ? `Referência: ${reference}` : "",
-    ]
-      .filter(Boolean)
-      .join(", ");
-
-    // Os dois campos são gravados no documento do negócio.
-    business.set("location", location);
-    business.set("address", fullAddress);
+      neighborhood: district,
+      city,
+      state,
+    });
 
     await business.save();
 

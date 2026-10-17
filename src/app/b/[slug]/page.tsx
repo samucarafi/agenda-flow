@@ -85,8 +85,28 @@ export default async function PublicBusinessPage({ params }: PageProps) {
         (part): part is string =>
           typeof part === "string" && part.trim().length > 0,
       )
+
       .join(", ") ||
-    (typeof business.address === "string" ? business.address : "");
+    [
+      business.address?.street
+        ? `${business.address.street}${
+            business.address.number ? `, ${business.address.number}` : ""
+          }`
+        : "",
+      business.address?.complement,
+      business.address?.neighborhood,
+      business.address?.city && business.address?.state
+        ? `${business.address.city} - ${business.address.state}`
+        : business.address?.city || business.address?.state,
+      business.address?.zipCode
+        ? `CEP ${String(business.address.zipCode).replace(/\D/g, "")}`
+        : "",
+    ]
+      .filter(
+        (part): part is string =>
+          typeof part === "string" && part.trim().length > 0,
+      )
+      .join(", ");
 
   const mapsSearchUrl = publicAddress
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(publicAddress)}`
