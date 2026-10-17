@@ -19,7 +19,11 @@ export interface IBusiness {
   description: string;
   status: BusinessStatus;
   timezone: string;
-
+  gallery: {
+    url: string;
+    publicId: string;
+    isCover: boolean;
+  }[];
   theme: {
     template: string;
     primaryColor: string;
@@ -70,7 +74,34 @@ const businessSchema = new Schema<IBusiness>(
       trim: true,
       match: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
     },
-
+    gallery: {
+      type: [
+        new Schema(
+          {
+            url: {
+              type: String,
+              required: true,
+              maxlength: 2048,
+            },
+            publicId: {
+              type: String,
+              required: true,
+              maxlength: 255,
+            },
+            isCover: {
+              type: Boolean,
+              default: false,
+            },
+          },
+          { _id: false },
+        ),
+      ],
+      default: [],
+      validate: {
+        validator: (images: unknown[]) => images.length <= 12,
+        message: "O estabelecimento pode ter no máximo 12 fotos.",
+      },
+    },
     category: {
       type: String,
       enum: BUSINESS_CATEGORIES,
