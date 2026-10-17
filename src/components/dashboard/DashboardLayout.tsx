@@ -2,17 +2,22 @@
 
 import { Sidebar } from "./Sidebar";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { BackButton } from "@/components/navigation/BackButton";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
   title: string;
   description?: string;
+  backHref?: string;
+  backLabel?: string;
 }
 
 export function DashboardLayout({
   children,
   title,
   description,
+  backHref,
+  backLabel = "Voltar",
 }: DashboardLayoutProps) {
   const user = useAuth();
 
@@ -22,8 +27,12 @@ export function DashboardLayout({
 
       <main className="min-w-0 flex-1">
         <header className="border-b border-zinc-200 bg-white">
-          <div className="flex h-16 items-center px-5 pl-16 lg:px-8 lg:pl-8">
-            <div>
+          <div className="flex min-h-16 items-center gap-3 px-5 py-3 pl-16 lg:px-8 lg:pl-8">
+            {backHref && (
+              <BackButton fallbackHref={backHref} label={backLabel} />
+            )}
+
+            <div className="min-w-0">
               <h1 className="text-sm font-semibold text-zinc-900">{title}</h1>
 
               {description && (

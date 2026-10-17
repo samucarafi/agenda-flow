@@ -223,7 +223,6 @@ async function calculateAvailableSlots(
   ) {
     const end = start + service.duration;
     const startTime = timeString(start);
-    const endTime = timeString(end);
     const instant = localDateTimeToUtc(date, startTime, timezone);
 
     if (!instant || instant.getTime() < now + minimumAdvance * 60_000) {

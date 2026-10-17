@@ -129,6 +129,7 @@ export function AgendaPage({ businessId, clients, services }: AgendaPageProps) {
   useEffect(() => {
     let cancelled = false;
 
+    const currentWeekDates = getWeekDates(selectedDate);
     async function loadAppointments() {
       setLoadingAppointments(true);
       setAgendaError("");
@@ -156,10 +157,11 @@ export function AgendaPage({ businessId, clients, services }: AgendaPageProps) {
 
     async function loadWeek() {
       setLoadingWeek(true);
-
       try {
         const results = await Promise.all(
-          weekDates.map((date) => getBusinessAppointments(businessId, date)),
+          currentWeekDates.map((date) =>
+            getBusinessAppointments(businessId, date),
+          ),
         );
 
         if (cancelled) return;
@@ -194,13 +196,16 @@ export function AgendaPage({ businessId, clients, services }: AgendaPageProps) {
     setSelectedDate(getLocalDateString(date));
   }
   async function refreshAgenda() {
+    const currentWeekDates = getWeekDates(selectedDate);
     setAgendaError("");
 
     try {
       const [dayResult, weekResults] = await Promise.all([
         getBusinessAppointments(businessId, selectedDate),
         Promise.all(
-          weekDates.map((date) => getBusinessAppointments(businessId, date)),
+          currentWeekDates.map((date) =>
+            getBusinessAppointments(businessId, date),
+          ),
         ),
       ]);
 
@@ -233,6 +238,8 @@ export function AgendaPage({ businessId, clients, services }: AgendaPageProps) {
       <DashboardLayout
         title="Agenda"
         description="Acompanhe e organize seus atendimentos."
+        backHref={`/dashboard/negocios/${businessId}`}
+        backLabel="Voltar ao negócio"
       >
         <div className="space-y-5">
           <div className="flex flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-5 lg:flex-row lg:items-center lg:justify-between">
