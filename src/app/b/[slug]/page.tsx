@@ -34,7 +34,7 @@ export default async function PublicBusinessPage({ params }: PageProps) {
     "bookingSettings.enabled": true,
   })
     .select(
-      "name slug category description address location timezone theme bookingSettings gallery",
+      "name slug category description address timezone theme bookingSettings gallery",
     )
     .lean();
 
@@ -62,51 +62,26 @@ export default async function PublicBusinessPage({ params }: PageProps) {
       ? business.theme.accentColor
       : "#06B6D4";
 
-  const location = business.location;
-
-  // Monta o endereço com os dados estruturados salvos no banco.
-  // O campo address é usado como alternativa para registros antigos.
-  const publicAddress =
-    [
-      location?.street
-        ? `${location.street}${location.number ? `, ${location.number}` : ""}`
-        : "",
-      location?.complement,
-      location?.district,
-      location?.city && location?.state
-        ? `${location.city} - ${location.state}`
-        : location?.city || location?.state,
-      location?.postalCode
-        ? `CEP ${String(location.postalCode).replace(/\D/g, "")}`
-        : "",
-      location?.reference ? `Referência: ${location.reference}` : "",
-    ]
-      .filter(
-        (part): part is string =>
-          typeof part === "string" && part.trim().length > 0,
-      )
-
-      .join(", ") ||
-    [
-      business.address?.street
-        ? `${business.address.street}${
-            business.address.number ? `, ${business.address.number}` : ""
-          }`
-        : "",
-      business.address?.complement,
-      business.address?.neighborhood,
-      business.address?.city && business.address?.state
-        ? `${business.address.city} - ${business.address.state}`
-        : business.address?.city || business.address?.state,
-      business.address?.zipCode
-        ? `CEP ${String(business.address.zipCode).replace(/\D/g, "")}`
-        : "",
-    ]
-      .filter(
-        (part): part is string =>
-          typeof part === "string" && part.trim().length > 0,
-      )
-      .join(", ");
+  const publicAddress = [
+    business.address?.street
+      ? `${business.address.street}${
+          business.address.number ? `, ${business.address.number}` : ""
+        }`
+      : "",
+    business.address?.complement,
+    business.address?.neighborhood,
+    business.address?.city && business.address?.state
+      ? `${business.address.city} - ${business.address.state}`
+      : business.address?.city || business.address?.state,
+    business.address?.zipCode
+      ? `CEP ${String(business.address.zipCode).replace(/\D/g, "")}`
+      : "",
+  ]
+    .filter(
+      (part): part is string =>
+        typeof part === "string" && part.trim().length > 0,
+    )
+    .join(", ");
 
   const mapsSearchUrl = publicAddress
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(publicAddress)}`

@@ -417,18 +417,6 @@ export async function saveBusinessSettings(formData: FormData) {
       redirect(`${settingsUrl}?error=address`);
     }
 
-    // location é consumido pela página pública.
-    business.set("location", {
-      postalCode: normalizedPostalCode,
-      street,
-      number,
-      complement,
-      district,
-      city,
-      state,
-      reference,
-    });
-
     // address corresponde ao objeto definido em Business.ts
     // e ao formato esperado por BusinessAddressFields.
     business.set("address", {

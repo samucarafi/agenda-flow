@@ -30,16 +30,6 @@ export interface IBusiness {
     accentColor: string;
     logoUrl: string;
   };
-  location?: {
-    postalCode: string;
-    street: string;
-    number: string;
-    complement: string;
-    district: string;
-    city: string;
-    state: string;
-    reference: string;
-  };
 
   bookingSettings: {
     enabled: boolean;
@@ -116,22 +106,7 @@ const businessSchema = new Schema<IBusiness>(
       trim: true,
       match: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
     },
-    location: {
-      postalCode: { type: String, trim: true, maxlength: 9, default: "" },
-      street: { type: String, trim: true, maxlength: 150, default: "" },
-      number: { type: String, trim: true, maxlength: 20, default: "" },
-      complement: { type: String, trim: true, maxlength: 100, default: "" },
-      district: { type: String, trim: true, maxlength: 100, default: "" },
-      city: { type: String, trim: true, maxlength: 100, default: "" },
-      state: {
-        type: String,
-        trim: true,
-        uppercase: true,
-        maxlength: 2,
-        default: "",
-      },
-      reference: { type: String, trim: true, maxlength: 150, default: "" },
-    },
+  
     gallery: {
       type: [
         new Schema(
