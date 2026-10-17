@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FiArrowLeft, FiArrowRight, FiClock, FiMapPin } from "react-icons/fi";
-
+import Image from "next/image";
 import { connectToDatabase } from "@/lib/mongodb";
 import Business from "@/models/Business";
 import Service from "@/models/Service";
@@ -32,7 +32,9 @@ export default async function PublicBusinessPage({ params }: PageProps) {
     status: "active",
     "bookingSettings.enabled": true,
   })
-    .select("name slug category description timezone theme bookingSettings")
+    .select(
+      "name slug category description timezone theme bookingSettings gallery",
+    )
     .lean();
 
   if (!business) notFound();
@@ -114,6 +116,40 @@ export default async function PublicBusinessPage({ params }: PageProps) {
           </p>
         </div>
       </section>
+
+      {(business.gallery?.length ?? 0) > 0 && (
+        <section className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 sm:pt-14">
+          <div className="mb-6">
+            <p className="text-sm font-medium" style={{ color: accentColor }}>
+              CONHEÇA NOSSO ESPAÇO
+            </p>
+
+            <h2 className="mt-2 text-2xl font-bold sm:text-3xl">
+              Fotos do estabelecimento
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {business.gallery.map((image) => (
+              <figure
+                key={image.publicId}
+                className={`overflow-hidden rounded-2xl border border-white/10 ${
+                  image.isCover ? "col-span-2 row-span-2" : ""
+                }`}
+              >
+                <Image
+                  src={image.url}
+                  alt={`Foto do estabelecimento ${business.name}`}
+                  width={1200}
+                  height={900}
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                  className="h-full min-h-36 w-full object-cover"
+                />
+              </figure>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
         <div className="mb-7">

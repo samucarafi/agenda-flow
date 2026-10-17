@@ -7,6 +7,7 @@ import Business from "@/models/Business";
 import Service from "@/models/Service";
 import { saveBusinessSettings } from "@/actions/businesses";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { BusinessGalleryManager } from "@/components/dashboard/businesses/BusinessGalleryManager";
 
 interface PageProps {
   params: Promise<{ businessId: string }>;
@@ -145,6 +146,15 @@ export default async function BusinessSettingsPage({
               publicado.
             </p>
           </div>
+
+          <BusinessGalleryManager
+            businessId={businessId}
+            initialImages={(business.gallery ?? []).map((image) => ({
+              url: image.url,
+              publicId: image.publicId,
+              isCover: image.isCover,
+            }))}
+          />
 
           <form action={saveBusinessSettings} className="space-y-6">
             <input type="hidden" name="businessId" value={businessId} />

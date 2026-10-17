@@ -8,6 +8,7 @@ import {
   FiCoffee,
 } from "react-icons/fi";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import Image from "next/image";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import Business from "@/models/Business";
@@ -53,7 +54,7 @@ export default async function BusinessesPage() {
   const businesses = await Business.find({
     ownerId: user.id,
   })
-    .select("name slug category status description createdAt")
+    .select("name slug category status description createdAt gallery")
     .sort({ createdAt: -1 })
     .lean();
 
@@ -120,6 +121,24 @@ export default async function BusinessesPage() {
                   key={business._id.toString()}
                   className="group rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-cyan-400/30 hover:bg-white/[0.05]"
                 >
+                  {(() => {
+                    const cover =
+                      business.gallery?.find((image) => image.isCover)?.url ??
+                      business.gallery?.[0]?.url;
+
+                    return cover ? (
+                      <div className="mb-4 aspect-[16/9] overflow-hidden rounded-xl bg-slate-900">
+                        <Image
+                          src={cover}
+                          alt={`Capa de ${business.name}`}
+                          width={1200}
+                          height={675}
+                          sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    ) : null;
+                  })()}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex size-12 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-400">
                       <CategoryIcon category={business.category} />
