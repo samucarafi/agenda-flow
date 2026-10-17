@@ -173,39 +173,78 @@ export default async function ManageBusinessPage({
         </section>
 
         <section className="mt-6 grid gap-4 lg:grid-cols-2">
-          <article className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-white/[0.06] text-slate-300">
-                <FiImage size={20} />
+          <Link
+            href={`${basePath}/configuracoes`}
+            className="group block rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:-translate-y-0.5 hover:border-cyan-400/40 hover:bg-cyan-400/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 sm:p-6"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-400">
+                  <FiImage size={20} />
+                </div>
+
+                <div>
+                  <h2 className="font-semibold">Identidade visual</h2>
+                  <p className="text-xs text-slate-400">
+                    Personalize a aparência pública
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <h2 className="font-semibold">Identidade visual</h2>
-                <p className="text-xs text-slate-400">
-                  Aparência da página pública
-                </p>
-              </div>
+              <FiArrowUpRight
+                size={18}
+                className="text-slate-500 transition group-hover:text-cyan-400"
+              />
             </div>
 
-            <p className="mt-4 text-sm text-slate-400">
-              Tema atual: {business.theme?.template ?? "default"}
+            <div className="mt-5 flex items-center gap-3">
+              <span
+                className="size-8 rounded-lg border border-white/10"
+                style={{
+                  backgroundColor: business.theme?.primaryColor ?? "#0F172A",
+                }}
+                aria-label="Cor principal"
+                title="Cor principal"
+              />
+
+              <span
+                className="size-8 rounded-lg border border-white/10"
+                style={{
+                  backgroundColor: business.theme?.accentColor ?? "#06B6D4",
+                }}
+                aria-label="Cor de destaque"
+                title="Cor de destaque"
+              />
+
+              <span className="text-sm text-slate-300">
+                {business.theme?.template === "minimal"
+                  ? "Minimalista"
+                  : business.theme?.template === "bold"
+                    ? "Marcante"
+                    : "Clássico"}
+              </span>
+            </div>
+
+            <p className="mt-4 text-sm leading-6 text-slate-400">
+              Altere as cores e as opções visuais nas configurações do negócio.
             </p>
 
-            <p className="mt-1 text-sm text-slate-400">
-              Personalizações visuais podem ser conectadas nesta área.
-            </p>
-          </article>
+            <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-cyan-400">
+              Personalizar identidade visual
+              <FiArrowUpRight size={16} />
+            </span>
+          </Link>
 
-          <article className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
             <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-xl bg-white/[0.06] text-slate-300">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-400">
                 <FiGlobe size={20} />
               </div>
 
               <div>
                 <h2 className="font-semibold">Página pública</h2>
                 <p className="text-xs text-slate-400">
-                  Endereço do estabelecimento
+                  Endereço e acesso dos clientes
                 </p>
               </div>
             </div>
@@ -223,7 +262,39 @@ export default async function ManageBusinessPage({
               Reservas públicas:{" "}
               {business.bookingSettings?.enabled ? "Ativadas" : "Desativadas"}
             </p>
-          </article>
+
+            {business.status === "active" &&
+            business.bookingSettings?.enabled ? (
+              <Link
+                href={`/b/${business.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-400 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+              >
+                Abrir página pública
+                <FiArrowUpRight size={16} />
+              </Link>
+            ) : (
+              <Link
+                href={`${basePath}/configuracoes`}
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-400/30 px-4 py-3 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-400/10"
+              >
+                Configurar e publicar
+                <FiSettings size={16} />
+              </Link>
+            )}
+
+            {business.status === "active" &&
+              business.bookingSettings?.enabled && (
+                <Link
+                  href={`/b/${business.slug}/agendar?preview=1`}
+                  className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-3 text-sm font-medium text-slate-300 transition hover:bg-white/[0.05] hover:text-white"
+                >
+                  Pré-visualizar agendamento
+                  <FiCalendar size={16} />
+                </Link>
+              )}
+          </div>
         </section>
         <section className="mt-6 rounded-2xl border border-red-400/20 bg-red-400/[0.03] p-5 sm:p-6">
           <h2 className="font-semibold text-red-300">Zona de perigo</h2>
