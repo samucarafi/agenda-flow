@@ -9,6 +9,8 @@ import WaitlistEntry, {
   WAITLIST_STATUSES,
   type WaitlistStatus,
 } from "@/models/WaitlistEntry";
+import { getCurrentUser } from "@/lib/auth";
+import Business from "@/models/Business";
 
 const addWaitlistSchema = z.object({
   businessId: z.string().refine(mongoose.isValidObjectId, "Negócio inválido."),
@@ -195,6 +197,116 @@ export async function updateRestaurantWaitlistStatus(formData: FormData) {
     return {
       success: false,
       error: "Não foi possível atualizar o grupo.",
+    };
+  }
+}
+
+const joinAsClientSchema = z.object({
+  businessId: z
+    .string()
+    .refine(mongoose.isValidObjectId, "Restaurante inválido."),
+  partySize: z.coerce.number().int().min(1).max(40),
+  notes: z.string().trim().max(300).default(""),
+});
+
+export async function joinRestaurantWaitlistAsClient(formData: FormData) {
+  const user = await getCurrentUser();
+
+  if (!user || user.role !== "client") {
+    return {
+      success: false,
+      error: "Entre na sua conta de cliente para participar da fila.",
+    };
+  }
+
+  const parsed = joinAsClientSchema.safeParse({
+    businessId: formData.get("businessId"),
+    partySize: formData.get("partySize"),
+    notes: formData.get("notes") ?? "",
+  });
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Dados inválidos.",
+    };
+  }
+
+  await connectToDatabase();
+
+  const businessId = new mongoose.Types.ObjectId(parsed.data.businessId);
+  const userId = new mongoose.Types.ObjectId(user.id);
+
+  const business = await Business.findOne({
+    _id: businessId,
+    category: "restaurant",
+    status: "active",
+  })
+    .select("_id name")
+    .lean();
+
+  if (!business) {
+    return {
+      success: false,
+      error: "Restaurante não encontrado ou indisponível.",
+    };
+  }
+
+  try {
+    const existingEntry = await WaitlistEntry.findOne({
+      businessId,
+      userId,
+      status: { $in: ["waiting", "called"] },
+    })
+      .select("_id")
+      .lean();
+
+    if (existingEntry) {
+      return {
+        success: false,
+        error: "Você já tem uma entrada ativa na fila deste restaurante.",
+      };
+    }
+
+    const activeCount = await WaitlistEntry.countDocuments({
+      businessId,
+      status: { $in: ["waiting", "called"] },
+    });
+
+    const entry = await WaitlistEntry.create({
+      businessId,
+      userId,
+      customerName: user.name,
+      partySize: parsed.data.partySize,
+      notes: parsed.data.notes,
+      position: activeCount + 1,
+      status: "waiting",
+      joinedAt: new Date(),
+    });
+
+    await reindexActiveEntries(businessId);
+
+    revalidatePath("/cliente/fila");
+    revalidatePath(
+      `/dashboard/negocios/${parsed.data.businessId}/fila-de-espera`,
+    );
+
+    const savedEntry = await WaitlistEntry.findById(entry._id)
+      .select("position")
+      .lean();
+
+    return {
+      success: true,
+      entryId: entry._id.toString(),
+      position: savedEntry?.position ?? 1,
+      businessName: business.name,
+    };
+  } catch (error) {
+    console.error("joinRestaurantWaitlistAsClient:", error);
+
+    return {
+      success: false,
+      error: "Não foi possível entrar na fila. Tente novamente.",
     };
   }
 }

@@ -289,7 +289,15 @@ export default async function PublicBusinessPage({ params }: PageProps) {
             Confira as opções, a duração e o preço antes de continuar.
           </p>
         </div>
-
+        {business.category === "restaurant" && (
+          <Link
+            href={`/b/${business.slug}/fila`}
+            className="mt-5 inline-flex rounded-xl px-4 py-3 text-sm font-semibold text-slate-950"
+            style={{ backgroundColor: accentColor }}
+          >
+            Entrar na fila de espera
+          </Link>
+        )}
         {services.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center">
             <h3 className="font-semibold">Nenhum serviço disponível ainda</h3>

@@ -1,5 +1,5 @@
 "use client";
-
+import WaitlistAutoRefresh from "./WaitlistAutoRefresh";
 import { useState, type FormEvent } from "react";
 import {
   addRestaurantWaitlistEntry,
@@ -235,7 +235,7 @@ export default function WaitlistManager({
         <h2 className="mb-4 text-xl font-semibold text-slate-900">
           Fila atual
         </h2>
-
+        <WaitlistAutoRefresh />
         {activeEntries.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
             <h3 className="font-semibold text-slate-900">Fila vazia</h3>

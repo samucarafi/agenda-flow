@@ -10,6 +10,7 @@ export const WAITLIST_STATUSES = [
 export type WaitlistStatus = (typeof WAITLIST_STATUSES)[number];
 
 export interface IWaitlistEntry {
+  userId?: mongoose.Types.ObjectId;
   businessId: mongoose.Types.ObjectId;
   customerName: string;
   phone?: string;
@@ -27,13 +28,46 @@ export interface IWaitlistEntry {
 
 const waitlistEntrySchema = new Schema<IWaitlistEntry>(
   {
-    businessId: { type: Schema.Types.ObjectId, ref: "Business", required: true, index: true },
-    customerName: { type: String, required: true, trim: true, minlength: 2, maxlength: 100 },
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: undefined,
+      index: true,
+    },
+    businessId: {
+      type: Schema.Types.ObjectId,
+      ref: "Business",
+      required: true,
+      index: true,
+    },
+    customerName: {
+      type: String,
+      required: true,
+      trim: true,
+      minlength: 2,
+      maxlength: 100,
+    },
     phone: { type: String, trim: true, maxlength: 30, default: "" },
-    partySize: { type: Number, required: true, min: 1, max: 40, validate: Number.isInteger },
-    status: { type: String, enum: WAITLIST_STATUSES, default: "waiting", required: true, index: true },
+    partySize: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 40,
+      validate: Number.isInteger,
+    },
+    status: {
+      type: String,
+      enum: WAITLIST_STATUSES,
+      default: "waiting",
+      required: true,
+      index: true,
+    },
     position: { type: Number, required: true, min: 1 },
-    tableId: { type: Schema.Types.ObjectId, ref: "RestaurantTable", default: undefined },
+    tableId: {
+      type: Schema.Types.ObjectId,
+      ref: "RestaurantTable",
+      default: undefined,
+    },
     notes: { type: String, trim: true, maxlength: 300, default: "" },
     joinedAt: { type: Date, default: Date.now, required: true, index: true },
     calledAt: { type: Date, default: undefined },
