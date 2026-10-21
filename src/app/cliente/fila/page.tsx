@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import WaitlistEntry from "@/models/WaitlistEntry";
 import QueueAutoRefresh from "./QueueAutoRefresh";
+import LeaveQueueButton from "./LeaveQueueButton";
 import mongoose from "mongoose";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +38,7 @@ export default async function ClientQueuePage() {
 
   const serializedEntries = entries.map((entry) => {
     const business = entry.businessId as unknown as {
+      _id: mongoose.Types.ObjectId;
       name: string;
       slug: string;
     } | null;
@@ -47,6 +49,7 @@ export default async function ClientQueuePage() {
 
     return {
       id: entry._id.toString(),
+      businessId: business?._id?.toString() ?? null,
       businessName: business?.name ?? "Restaurante",
       businessSlug: business?.slug ?? null,
       customerName: entry.customerName,
@@ -147,6 +150,22 @@ export default async function ClientQueuePage() {
                     >
                       Procure a equipe do restaurante.
                     </div>
+                  )}
+
+                  {entry.businessSlug && (
+                    <Link
+                      href={`/b/${entry.businessSlug}/fila`}
+                      className="mt-4 inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                    >
+                      Acompanhar fila deste restaurante
+                    </Link>
+                  )}
+
+                  {entry.businessId && (
+                    <LeaveQueueButton
+                      businessId={entry.businessId}
+                      businessName={entry.businessName}
+                    />
                   )}
                 </div>
 

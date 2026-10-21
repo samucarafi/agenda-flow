@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import WaitlistEntry from "@/models/WaitlistEntry";
 import WaitlistManager from "./WaitlistManager";
 import RestaurantTable from "@/models/RestaurantTable";
+import Link from "next/link";
 
 type PageProps = {
   params: Promise<{ businessId: string }>;
@@ -58,6 +59,34 @@ export default async function RestaurantWaitlistPage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
+        <nav
+          aria-label="Navegação do painel"
+          className="mb-6 flex flex-wrap items-center gap-2"
+        >
+          <Link
+            href="/dashboard"
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+          >
+            <span aria-hidden="true">← </span>
+            Painel principal
+          </Link>
+
+          <Link
+            href={`/dashboard/negocios/${businessId}/configuracoes`}
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+          >
+            Configurações do negócio
+          </Link>
+
+          <Link
+            href={`/b/${access.business.slug}`}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-indigo-700 transition hover:bg-indigo-50"
+          >
+            Ver página pública ↗
+          </Link>
+        </nav>
         <header className="mb-8">
           <p className="text-sm font-medium text-indigo-600">
             Operação do restaurante

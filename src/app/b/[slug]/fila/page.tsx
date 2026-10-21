@@ -44,12 +44,39 @@ export default async function PublicRestaurantWaitlistPage({
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-10 sm:px-6 sm:py-16">
       <div className="mx-auto max-w-xl">
-        <Link
-          href={`/b/${business.slug}`}
-          className="text-sm font-medium text-indigo-700 hover:text-indigo-900"
+        <nav
+          aria-label="Navegação do restaurante"
+          className="flex flex-wrap gap-2"
         >
-          ← Voltar ao restaurante
-        </Link>
+          <Link
+            href={`/b/${business.slug}`}
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Página do restaurante
+          </Link>
+
+          <Link
+            href={`/b/${business.slug}/fila`}
+            aria-current="page"
+            className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white"
+          >
+            Fila de espera
+          </Link>
+
+          <Link
+            href="/cliente/fila"
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Minhas filas
+          </Link>
+
+          <Link
+            href="/cliente"
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Minha conta
+          </Link>
+        </nav>
 
         <header className="mb-8 mt-8">
           <p className="text-sm font-semibold text-indigo-600">

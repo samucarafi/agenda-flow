@@ -34,8 +34,6 @@ export default function JoinWaitlistForm({
         setError(result.error ?? "Não foi possível entrar na fila.");
         return;
       }
-
-      router.push("/cliente/fila");
       router.refresh();
     } catch {
       setError("Não foi possível entrar na fila. Tente novamente.");
