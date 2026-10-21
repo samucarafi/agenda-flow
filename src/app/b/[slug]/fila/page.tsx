@@ -4,6 +4,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import Business from "@/models/Business";
 import JoinWaitlistForm from "./JoinWaitListForm";
+import WaitlistEntry from "@/models/WaitlistEntry";
+import RestaurantWaitlistStatus from "./RestaurantWaitlistStatus";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -28,6 +30,17 @@ export default async function PublicRestaurantWaitlistPage({
 
   const user = await getCurrentUser();
 
+  const activeEntry =
+    user?.role === "client"
+      ? await WaitlistEntry.findOne({
+          businessId: business._id,
+          userId: user.id,
+          status: { $in: ["waiting", "called"] },
+        })
+          .select("_id position partySize status joinedAt")
+          .lean()
+      : null;
+
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-10 sm:px-6 sm:py-16">
       <div className="mx-auto max-w-xl">
@@ -50,7 +63,19 @@ export default async function PublicRestaurantWaitlistPage({
           </p>
         </header>
 
-        {user?.role === "client" ? (
+        {user?.role === "client" && activeEntry ? (
+          <RestaurantWaitlistStatus
+            businessId={business._id.toString()}
+            businessName={business.name}
+            initialEntry={{
+              id: activeEntry._id.toString(),
+              position: activeEntry.position,
+              partySize: activeEntry.partySize,
+              status: activeEntry.status,
+              joinedAt: activeEntry.joinedAt.toISOString(),
+            }}
+          />
+        ) : user?.role === "client" ? (
           <JoinWaitlistForm
             businessId={business._id.toString()}
             businessName={business.name}

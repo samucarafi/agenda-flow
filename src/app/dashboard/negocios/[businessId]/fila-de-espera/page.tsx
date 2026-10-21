@@ -3,6 +3,7 @@ import { getOwnedBusiness } from "@/lib/business";
 import { connectToDatabase } from "@/lib/mongodb";
 import WaitlistEntry from "@/models/WaitlistEntry";
 import WaitlistManager from "./WaitlistManager";
+import RestaurantTable from "@/models/RestaurantTable";
 
 type PageProps = {
   params: Promise<{ businessId: string }>;
@@ -27,6 +28,21 @@ export default async function RestaurantWaitlistPage({ params }: PageProps) {
     .sort({ joinedAt: -1 })
     .limit(100)
     .lean();
+
+  const availableTables = await RestaurantTable.find({
+    businessId,
+    active: true,
+    status: "available",
+  })
+    .select("_id name capacity")
+    .sort({ capacity: 1, name: 1 })
+    .lean();
+
+  const serializedTables = availableTables.map((table) => ({
+    id: table._id.toString(),
+    name: table.name,
+    capacity: table.capacity,
+  }));
 
   const entries = documents.map((entry) => ({
     id: entry._id.toString(),
@@ -55,7 +71,11 @@ export default async function RestaurantWaitlistPage({ params }: PageProps) {
           </p>
         </header>
 
-        <WaitlistManager businessId={businessId} initialEntries={entries} />
+        <WaitlistManager
+          businessId={businessId}
+          initialEntries={entries}
+          availableTables={serializedTables}
+        />
       </div>
     </main>
   );

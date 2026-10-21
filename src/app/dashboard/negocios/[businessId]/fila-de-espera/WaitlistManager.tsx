@@ -1,12 +1,19 @@
 "use client";
 import WaitlistAutoRefresh from "./WaitlistAutoRefresh";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   addRestaurantWaitlistEntry,
   updateRestaurantWaitlistStatus,
+  seatRestaurantWaitlistEntry,
 } from "@/actions/restaurant-waitlist";
 
 type WaitStatus = "waiting" | "called" | "seated" | "cancelled" | "no_show";
+
+type AvailableTable = {
+  id: string;
+  name: string;
+  capacity: number;
+};
 
 type Entry = {
   id: string;
@@ -45,11 +52,20 @@ type ActionResult = {
 export default function WaitlistManager({
   businessId,
   initialEntries,
+  availableTables,
 }: {
   businessId: string;
   initialEntries: Entry[];
+  availableTables: AvailableTable[];
 }) {
-  const [entries] = useState(initialEntries);
+  const [selectedTables, setSelectedTables] = useState<Record<string, string>>(
+    {},
+  );
+  const [entries, setEntries] = useState(initialEntries);
+
+  useEffect(() => {
+    setEntries(initialEntries);
+  }, [initialEntries]);
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
   const [partySize, setPartySize] = useState("2");
@@ -284,13 +300,67 @@ export default function WaitlistManager({
                       </button>
                     )}
 
-                    <button
-                      disabled={pending}
-                      onClick={() => void changeStatus(entry, "seated")}
-                      className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-                    >
-                      Acomodar
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <select
+                        aria-label={`Mesa para ${entry.customerName}`}
+                        value={selectedTables[entry.id] ?? ""}
+                        disabled={pending}
+                        onChange={(event) =>
+                          setSelectedTables((current) => ({
+                            ...current,
+                            [entry.id]: event.target.value,
+                          }))
+                        }
+                        className="min-w-40 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="">Selecionar mesa</option>
+                        {availableTables
+                          .filter((table) => table.capacity >= entry.partySize)
+                          .map((table) => (
+                            <option key={table.id} value={table.id}>
+                              {table.name} · {table.capacity} lugares
+                            </option>
+                          ))}
+                      </select>
+
+                      <button
+                        type="button"
+                        disabled={pending || !selectedTables[entry.id]}
+                        onClick={async () => {
+                          setPending(true);
+                          setError("");
+                          setMessage("");
+
+                          const formData = new FormData();
+                          formData.set("businessId", businessId);
+                          formData.set("entryId", entry.id);
+                          formData.set("tableId", selectedTables[entry.id]);
+
+                          try {
+                            const result =
+                              await seatRestaurantWaitlistEntry(formData);
+
+                            if (!result.success) {
+                              setError(
+                                result.error ??
+                                  "Não foi possível acomodar o grupo.",
+                              );
+                              return;
+                            }
+
+                            setMessage(`${entry.customerName} foi acomodado.`);
+                            window.location.reload();
+                          } catch {
+                            setError("Ocorreu um erro ao acomodar o grupo.");
+                          } finally {
+                            setPending(false);
+                          }
+                        }}
+                        className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Confirmar mesa
+                      </button>
+                    </div>
 
                     <button
                       disabled={pending}
