@@ -13,6 +13,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { Appointment } from "@/models/Appointment";
 import Client from "@/models/Client";
 import Business from "@/models/Business";
+import "@/models/Service";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 export const dynamic = "force-dynamic";
 
