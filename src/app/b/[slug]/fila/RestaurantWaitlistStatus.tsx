@@ -1,11 +1,10 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { leaveRestaurantWaitlistAsClient } from "@/actions/restaurant-waitlist";
 
-type EntryStatus = "waiting" | "called";
+type EntryStatus = "waiting" | "called" | "seated";
 
 type Entry = {
   id: string;
@@ -13,6 +12,7 @@ type Entry = {
   partySize: number;
   status: EntryStatus;
   joinedAt: string;
+  tableName: string | null;
 };
 
 export default function RestaurantWaitlistStatus({
@@ -27,11 +27,6 @@ export default function RestaurantWaitlistStatus({
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const [entry, setEntry] = useState(initialEntry);
-
-  useEffect(() => {
-    setEntry(initialEntry);
-  }, [initialEntry]);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -42,9 +37,7 @@ export default function RestaurantWaitlistStatus({
   }, [router]);
 
   async function leaveQueue() {
-    const confirmed = window.confirm(
-      `Deseja sair da fila de ${businessName}?`,
-    );
+    const confirmed = window.confirm(`Deseja sair da fila de ${businessName}?`);
 
     if (!confirmed) return;
 
@@ -72,9 +65,7 @@ export default function RestaurantWaitlistStatus({
 
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-      <p className="text-sm font-semibold text-indigo-600">
-        SUA PARTICIPAÇÃO
-      </p>
+      <p className="text-sm font-semibold text-indigo-600">SUA PARTICIPAÇÃO</p>
 
       <h2 className="mt-2 text-2xl font-bold text-slate-950">
         Você já está na fila
@@ -86,22 +77,40 @@ export default function RestaurantWaitlistStatus({
         <p className="text-sm text-indigo-700">Situação atual</p>
 
         <p className="mt-1 text-xl font-bold text-indigo-950">
-          {entry.status === "called" ? "Você foi chamado!" : "Aguardando"}
+          {initialEntry.status === "called"
+            ? "Você foi chamado!"
+            : initialEntry.status === "seated"
+              ? "Você já foi acomodado"
+              : "Aguardando"}
         </p>
 
-        {entry.status === "waiting" && (
+        {initialEntry.status === "waiting" && (
           <p className="mt-3 text-sm text-indigo-800">
-            Sua posição atual é {entry.position}.
+            Sua posição atual é {initialEntry.position}.
           </p>
         )}
 
         <p className="mt-2 text-sm text-slate-600">
-          Grupo de {entry.partySize}{" "}
-          {entry.partySize === 1 ? "pessoa" : "pessoas"}.
+          Grupo de {initialEntry.partySize}{" "}
+          {initialEntry.partySize === 1 ? "pessoa" : "pessoas"}.
         </p>
+
+        <p className="mt-2 text-sm text-slate-600">
+          Entrada registrada em{" "}
+          {new Date(initialEntry.joinedAt).toLocaleString("pt-BR", {
+            dateStyle: "short",
+            timeStyle: "short",
+          })}
+        </p>
+
+        {initialEntry.status === "seated" && initialEntry.tableName && (
+          <p className="mt-2 font-semibold text-emerald-700">
+            Mesa: {initialEntry.tableName}
+          </p>
+        )}
       </div>
 
-      {entry.status === "called" && (
+      {initialEntry.status === "called" && (
         <p role="status" className="mt-4 text-sm font-medium text-amber-800">
           Procure a equipe do restaurante para receber atendimento.
         </p>
@@ -113,14 +122,17 @@ export default function RestaurantWaitlistStatus({
         </p>
       )}
 
-      <button
-        type="button"
-        onClick={() => void leaveQueue()}
-        disabled={pending}
-        className="mt-6 w-full rounded-xl border border-rose-200 px-4 py-3 font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60"
-      >
-        {pending ? "Saindo da fila..." : "Sair da fila"}
-      </button>
+      {(initialEntry.status === "waiting" ||
+        initialEntry.status === "called") && (
+        <button
+          type="button"
+          onClick={() => void leaveQueue()}
+          disabled={pending}
+          className="mt-6 w-full rounded-xl border border-rose-200 px-4 py-3 font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60"
+        >
+          {pending ? "Saindo da fila..." : "Sair da fila"}
+        </button>
+      )}
 
       <p className="mt-3 text-xs text-slate-500">
         A posição é atualizada automaticamente a cada 10 segundos.

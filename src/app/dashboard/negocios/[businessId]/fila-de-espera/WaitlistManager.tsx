@@ -1,6 +1,6 @@
 "use client";
 import WaitlistAutoRefresh from "./WaitlistAutoRefresh";
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import {
   addRestaurantWaitlistEntry,
   updateRestaurantWaitlistStatus,
@@ -61,11 +61,7 @@ export default function WaitlistManager({
   const [selectedTables, setSelectedTables] = useState<Record<string, string>>(
     {},
   );
-  const [entries, setEntries] = useState(initialEntries);
-
-  useEffect(() => {
-    setEntries(initialEntries);
-  }, [initialEntries]);
+  const entries = initialEntries;
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
   const [partySize, setPartySize] = useState("2");

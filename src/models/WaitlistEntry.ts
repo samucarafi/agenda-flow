@@ -1,6 +1,13 @@
 import mongoose, { Schema, models, type Model } from "mongoose";
 
-export const WAITLIST_STATUSES = ["waiting", "called"] as const;
+export const WAITLIST_STATUSES = [
+  "waiting",
+  "called",
+  "seated",
+  "cancelled",
+  "no_show",
+] as const;
+
 export type WaitlistStatus = (typeof WAITLIST_STATUSES)[number];
 
 export interface IWaitlistEntry {

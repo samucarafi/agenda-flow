@@ -30,17 +30,30 @@ export default async function PublicRestaurantWaitlistPage({
 
   const user = await getCurrentUser();
 
-  const activeEntry =
+  const latestEntry =
     user?.role === "client"
       ? await WaitlistEntry.findOne({
           businessId: business._id,
           userId: user.id,
-          status: { $in: ["waiting", "called"] },
         })
-          .select("_id position partySize status joinedAt")
+          .sort({ joinedAt: -1, _id: -1 })
+          .select("_id position partySize status joinedAt tableId")
+          .populate("tableId", "name")
           .lean()
       : null;
 
+  type PublicEntryStatus = "waiting" | "called" | "seated";
+
+  const visibleEntry =
+    latestEntry &&
+    (latestEntry.status === "waiting" ||
+      latestEntry.status === "called" ||
+      latestEntry.status === "seated")
+      ? {
+          ...latestEntry,
+          status: latestEntry.status as PublicEntryStatus,
+        }
+      : null;
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-10 sm:px-6 sm:py-16">
       <div className="mx-auto max-w-xl">
@@ -90,16 +103,22 @@ export default async function PublicRestaurantWaitlistPage({
           </p>
         </header>
 
-        {user?.role === "client" && activeEntry ? (
+        {user?.role === "client" && visibleEntry ? (
           <RestaurantWaitlistStatus
             businessId={business._id.toString()}
             businessName={business.name}
             initialEntry={{
-              id: activeEntry._id.toString(),
-              position: activeEntry.position,
-              partySize: activeEntry.partySize,
-              status: activeEntry.status,
-              joinedAt: activeEntry.joinedAt.toISOString(),
+              id: visibleEntry._id.toString(),
+              position: visibleEntry.position,
+              partySize: visibleEntry.partySize,
+              status: visibleEntry.status,
+              joinedAt: visibleEntry.joinedAt.toISOString(),
+              tableName:
+                visibleEntry.tableId &&
+                typeof visibleEntry.tableId === "object" &&
+                "name" in visibleEntry.tableId
+                  ? String(visibleEntry.tableId.name)
+                  : null,
             }}
           />
         ) : user?.role === "client" ? (
