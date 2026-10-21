@@ -7,7 +7,7 @@ import {
   FiMapPin,
   FiSearch,
 } from "react-icons/fi";
-
+import { ClientAppointmentActions } from "@/components/client/ClientAppointmentActions";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Appointment } from "@/models/Appointment";
@@ -91,6 +91,20 @@ export default async function ClientPage() {
       category: string;
     } | null;
 
+    const serviceId =
+      appointment.serviceId &&
+      typeof appointment.serviceId === "object" &&
+      "_id" in appointment.serviceId
+        ? String(appointment.serviceId._id)
+        : null;
+
+    const businessId =
+      appointment.businessId &&
+      typeof appointment.businessId === "object" &&
+      "_id" in appointment.businessId
+        ? String(appointment.businessId._id)
+        : null;
+
     return {
       id: appointment._id.toString(),
       date: appointment.date.toISOString(),
@@ -101,6 +115,8 @@ export default async function ClientPage() {
       businessName: business?.name ?? "Estabelecimento",
       businessSlug: business?.slug ?? null,
       category: business?.category ?? "other",
+      serviceId,
+      businessId,
     };
   });
 
@@ -243,6 +259,17 @@ export default async function ClientPage() {
                       <FiArrowUpRight size={16} />
                     </Link>
                   )}
+                  {appointment.businessId &&
+                    appointment.serviceId &&
+                    ["scheduled", "confirmed"].includes(appointment.status) && (
+                      <ClientAppointmentActions
+                        appointmentId={appointment.id}
+                        businessId={appointment.businessId}
+                        serviceId={appointment.serviceId}
+                        date={appointment.date}
+                        startTime={appointment.startTime}
+                      />
+                    )}
                 </article>
               ))}
             </div>
