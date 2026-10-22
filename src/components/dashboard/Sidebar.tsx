@@ -13,6 +13,7 @@ import {
   FiScissors,
   FiSettings,
   FiUsers,
+  FiUser,
   FiX,
 } from "react-icons/fi";
 
@@ -41,8 +42,9 @@ export function Sidebar({ user, businessCategory }: SidebarProps) {
   );
   const businessId = businessMatch?.[1];
 
+  const isRestaurant = businessCategory === "restaurant";
   const navigation: NavigationItem[] = businessId
-    ? businessCategory === "restaurant"
+    ? isRestaurant
       ? [
           { label: "Visão geral", href: `/dashboard/negocios/${businessId}`, icon: FiGrid },
           { label: "Fila de espera", href: `/dashboard/negocios/${businessId}/fila-de-espera`, icon: FiClock },
@@ -136,7 +138,7 @@ export function Sidebar({ user, businessCategory }: SidebarProps) {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
-          <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+          <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-white">
             {businessId ? "Gestão do negócio" : "Área administrativa"}
           </p>
 
@@ -161,7 +163,7 @@ export function Sidebar({ user, businessCategory }: SidebarProps) {
                   className={`group flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm transition ${
                     active
                       ? "border-cyan-400/15 bg-cyan-400/10 font-semibold text-cyan-300"
-                      : "border-transparent text-slate-400 hover:bg-white/[0.04] hover:text-slate-100"
+                      : "border-transparent text-white hover:bg-white/[0.08] hover:text-white"
                   }`}
                 >
                   <Icon
@@ -169,7 +171,7 @@ export function Sidebar({ user, businessCategory }: SidebarProps) {
                     className={
                       active
                         ? "text-cyan-300"
-                        : "text-slate-500 transition group-hover:text-slate-200"
+                        : "text-slate-200 transition group-hover:text-white"
                     }
                   />
                   <span>{item.label}</span>
@@ -184,8 +186,18 @@ export function Sidebar({ user, businessCategory }: SidebarProps) {
             <p className="truncate text-sm font-semibold text-slate-100">
               {user.name}
             </p>
-            <p className="truncate text-xs text-slate-500">{user.email}</p>
+            <p className="truncate text-xs text-slate-200">{user.email}</p>
           </div>
+
+          <Link
+            href="/perfil"
+            onClick={() => setMobileOpen(false)}
+            aria-current={pathname === "/perfil" ? "page" : undefined}
+            className={`mb-2 flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium transition ${pathname === "/perfil" ? "border-cyan-400/15 bg-cyan-400/10 text-cyan-300" : "border-transparent text-white hover:bg-white/[0.08] hover:text-white"}`}
+          >
+            <FiUser size={17} />
+            Meu perfil
+          </Link>
 
           <LogoutButton />
         </div>

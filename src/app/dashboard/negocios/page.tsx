@@ -26,6 +26,10 @@ const statusLabels: Record<string, string> = {
   suspended: "Suspenso",
 };
 
+function isRestaurant(category: string) {
+  return ["restaurant", "restaurante", "restaurants"].includes(category.trim().toLowerCase());
+}
+
 function CategoryIcon({ category }: { category: string }) {
   if (category === "barbershop" || category === "beauty_salon") {
     return <FiScissors size={22} />;
@@ -63,12 +67,13 @@ export default async function BusinessesPage() {
       title="Meus negócios"
       description="Gerencie seus estabelecimentos."
       showHeader={false}
+      contentVariant="dark"
     >
-      <main className="min-h-screen bg-slate-950 px-4 py-8 text-white sm:px-6 lg:px-8">
+      <div className="px-1 py-2 text-slate-900">
         <div className="mx-auto max-w-6xl">
           <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-sm font-medium text-cyan-400">
+              <p className="text-sm font-semibold text-indigo-700">
                 ESPAÇO DE TRABALHO
               </p>
 
@@ -76,7 +81,7 @@ export default async function BusinessesPage() {
                 Meus negócios
               </h1>
 
-              <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">
+              <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
                 Gerencie seus estabelecimentos e personalize cada experiência de
                 atendimento.
               </p>
@@ -84,7 +89,7 @@ export default async function BusinessesPage() {
 
             <Link
               href="/dashboard/negocios/novo"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
             >
               <FiPlus size={18} />
               Novo negócio
@@ -92,8 +97,8 @@ export default async function BusinessesPage() {
           </header>
 
           {businesses.length === 0 ? (
-            <section className="mt-10 rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-6 py-14 text-center">
-              <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-cyan-400/10 text-cyan-400">
+            <section className="mt-10 rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center shadow-sm">
+              <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-700">
                 <FiBriefcase size={26} />
               </div>
 
@@ -101,14 +106,14 @@ export default async function BusinessesPage() {
                 Seu primeiro negócio começa aqui
               </h2>
 
-              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-400">
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">
                 Cadastre sua barbearia, salão ou restaurante para começar a
                 configurar seus serviços e suas reservas.
               </p>
 
               <Link
                 href="/dashboard/negocios/novo"
-                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-cyan-300"
+                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700"
               >
                 Criar meu primeiro negócio
                 <FiArrowUpRight size={18} />
@@ -119,7 +124,7 @@ export default async function BusinessesPage() {
               {businesses.map((business) => (
                 <article
                   key={business._id.toString()}
-                  className="group rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-cyan-400/30 hover:bg-white/[0.05]"
+                  className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md"
                 >
                   {(() => {
                     const cover =
@@ -127,7 +132,7 @@ export default async function BusinessesPage() {
                       business.gallery?.[0]?.url;
 
                     return cover ? (
-                      <div className="mb-4 aspect-[16/9] overflow-hidden rounded-xl bg-slate-900">
+                      <div className="mb-4 aspect-[16/9] overflow-hidden rounded-xl bg-slate-100">
                         <Image
                           src={cover}
                           alt={`Capa de ${business.name}`}
@@ -140,11 +145,11 @@ export default async function BusinessesPage() {
                     ) : null;
                   })()}
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex size-12 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-400">
+                    <div className="flex size-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700">
                       <CategoryIcon category={business.category} />
                     </div>
 
-                    <span className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-300">
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-700">
                       {statusLabels[business.status] ?? "Indefinido"}
                     </span>
                   </div>
@@ -153,24 +158,24 @@ export default async function BusinessesPage() {
                     {business.name}
                   </h2>
 
-                  <p className="mt-1 text-sm text-slate-400">
+                  <p className="mt-1 text-sm text-slate-600">
                     {categoryLabels[business.category] ?? "Outro negócio"}
                   </p>
 
                   {business.description && (
-                    <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-400">
+                    <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-600">
                       {business.description}
                     </p>
                   )}
 
-                  <div className="mt-5 border-t border-white/10 pt-4">
-                    <p className="text-xs text-slate-400">Página pública</p>
+                  <div className="mt-5 border-t border-slate-200 pt-4">
+                    <p className="text-xs text-slate-500">Página pública</p>
 
                     <Link
                       href={`/b/${business.slug}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-2 inline-flex items-center gap-2 break-all text-sm font-medium text-cyan-400 hover:text-cyan-300"
+                      className="mt-2 inline-flex items-center gap-2 break-all text-sm font-medium text-indigo-700 hover:text-indigo-900"
                     >
                       /b/{business.slug}
                       <FiArrowUpRight size={16} />
@@ -178,14 +183,14 @@ export default async function BusinessesPage() {
 
                     {business.status === "active" ? (
                       <Link
-                        href={`/b/${business.slug}/agendar?preview=1`}
-                        className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-cyan-400/30 px-4 py-2.5 text-sm font-semibold text-cyan-300 hover:bg-cyan-400/10"
+                        href={isRestaurant(business.category) ? `/dashboard/negocios/${business._id.toString()}/fila-de-espera` : `/b/${business.slug}/agendar?preview=1`}
+                        className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-indigo-200 px-4 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-50"
                       >
-                        Pré-visualizar agendamento.
+                        {isRestaurant(business.category) ? "Gerenciar fila de espera" : "Pré-visualizar agendamento"}
                         <FiArrowUpRight size={16} />
                       </Link>
                     ) : (
-                      <p className="mt-2 text-xs text-amber-300">
+                      <p className="mt-2 text-xs text-amber-700">
                         Ative o negócio para disponibilizar a página pública.
                       </p>
                     )}
@@ -193,7 +198,7 @@ export default async function BusinessesPage() {
 
                   <Link
                     href={`/dashboard/negocios/${business._id.toString()}`}
-                    className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-cyan-400 transition group-hover:text-cyan-300"
+                    className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-indigo-700 transition group-hover:text-indigo-900"
                   >
                     Gerenciar negócio
                     <FiArrowUpRight size={17} />
@@ -203,7 +208,7 @@ export default async function BusinessesPage() {
             </section>
           )}
         </div>
-      </main>
+      </div>
     </DashboardLayout>
   );
 }

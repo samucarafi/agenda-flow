@@ -3,7 +3,6 @@ import { notFound, redirect } from "next/navigation";
 import {
   FiArrowLeft,
   FiSettings,
-  FiImage,
   FiCalendar,
   FiUsers,
   FiBriefcase,
@@ -54,6 +53,10 @@ export default async function ManageBusinessPage({
     restaurant: "Restaurante",
     other: "Outro negócio",
   };
+
+function isRestaurant(category: string) {
+  return ["restaurant", "restaurante", "restaurants"].includes(category.trim().toLowerCase());
+}
 
   const basePath = `/dashboard/negocios/${businessId}`;
 
@@ -136,6 +139,8 @@ export default async function ManageBusinessPage({
       backHref="/dashboard/negocios"
       backLabel="Meus negócios"
       showHeader={false}
+      contentVariant="dark"
+      fullBleed
     >
       <main className="min-h-full bg-slate-950 px-4 py-8 text-white sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl">
@@ -222,70 +227,7 @@ export default async function ManageBusinessPage({
             </div>
           </section>
 
-          <section className="mt-6 grid gap-4 lg:grid-cols-2">
-            <Link
-              href={`${basePath}/configuracoes`}
-              className="group block rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:-translate-y-0.5 hover:border-cyan-400/40 hover:bg-cyan-400/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 sm:p-6"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-10 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-400">
-                    <FiImage size={20} />
-                  </div>
-
-                  <div>
-                    <h2 className="font-semibold">Identidade visual</h2>
-                    <p className="text-xs text-slate-400">
-                      Personalize a aparência pública
-                    </p>
-                  </div>
-                </div>
-
-                <FiArrowUpRight
-                  size={18}
-                  className="text-slate-500 transition group-hover:text-cyan-400"
-                />
-              </div>
-
-              <div className="mt-5 flex items-center gap-3">
-                <span
-                  className="size-8 rounded-lg border border-white/10"
-                  style={{
-                    backgroundColor: business.theme?.primaryColor ?? "#0F172A",
-                  }}
-                  aria-label="Cor principal"
-                  title="Cor principal"
-                />
-
-                <span
-                  className="size-8 rounded-lg border border-white/10"
-                  style={{
-                    backgroundColor: business.theme?.accentColor ?? "#06B6D4",
-                  }}
-                  aria-label="Cor de destaque"
-                  title="Cor de destaque"
-                />
-
-                <span className="text-sm text-slate-300">
-                  {business.theme?.template === "minimal"
-                    ? "Minimalista"
-                    : business.theme?.template === "bold"
-                      ? "Marcante"
-                      : "Clássico"}
-                </span>
-              </div>
-
-              <p className="mt-4 text-sm leading-6 text-slate-400">
-                Altere as cores e as opções visuais nas configurações do
-                negócio.
-              </p>
-
-              <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-cyan-400">
-                Personalizar identidade visual
-                <FiArrowUpRight size={16} />
-              </span>
-            </Link>
-
+          <section className="mt-6">
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
               <div className="flex items-center gap-3">
                 <div className="flex size-10 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-400">
@@ -337,7 +279,7 @@ export default async function ManageBusinessPage({
               )}
 
               {business.status === "active" &&
-                (business.category === "restaurant" ? (
+                (isRestaurant(business.category) ? (
                   <Link
                     href={`/b/${business.slug}/fila`}
                     target="_blank"

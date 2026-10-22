@@ -1,6 +1,8 @@
 "use server";
 
 import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
+import { randomInt } from "node:crypto";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { getOwnedBusiness } from "@/lib/business";
@@ -12,12 +14,15 @@ import WaitlistEntry, {
 import { getCurrentUser } from "@/lib/auth";
 import Business from "@/models/Business";
 import RestaurantTable from "@/models/RestaurantTable";
+import User from "@/models/User";
 import { isAllowedWaitlistTransition } from "@/lib/waitlist-rules.mjs";
+import { isBusinessWithinHours } from "@/lib/business-hours";
 
 const addWaitlistSchema = z.object({
   businessId: z.string().refine(mongoose.isValidObjectId, "Negócio inválido."),
   notes: z.string().trim().max(300).default(""),
   customerName: z.string().trim().min(2).max(100),
+  email: z.string().trim().email("Informe um e-mail válido.").max(254),
   phone: z.string().trim().max(30).default(""),
   partySize: z.coerce.number().int().min(1).max(40),
 });
@@ -54,6 +59,7 @@ export async function addRestaurantWaitlistEntry(formData: FormData) {
   const parsed = addWaitlistSchema.safeParse({
     businessId: formData.get("businessId"),
     customerName: formData.get("customerName"),
+    email: formData.get("email"),
     notes: formData.get("notes") ?? "",
     phone: formData.get("phone") ?? "",
     partySize: formData.get("partySize"),
@@ -75,13 +81,79 @@ export async function addRestaurantWaitlistEntry(formData: FormData) {
     };
   }
 
+  if (!isBusinessWithinHours(access.business.availability, access.business.timezone)) {
+    return {
+      success: false,
+      error: "A fila só pode receber novos grupos durante os dias e horários de atendimento do restaurante.",
+    };
+  }
+
   await connectToDatabase();
 
   const businessId = new mongoose.Types.ObjectId(parsed.data.businessId);
+  const email = parsed.data.email.toLowerCase();
+  let createdUserId: mongoose.Types.ObjectId | undefined;
+  let entryCreated = false;
 
   try {
+    let customer = await User.findOne({ email, active: true });
+
+    if (customer && customer.role !== "client") {
+      return {
+        success: false,
+        error: "Este e-mail pertence a uma conta de proprietário. Informe o e-mail da conta de cliente.",
+      };
+    }
+
+    let temporaryPassword: string | undefined;
+    let accountCreated = false;
+
+    if (!customer) {
+      temporaryPassword = `Fila-${randomInt(1000, 10000)}!`;
+      const passwordHash = await bcrypt.hash(temporaryPassword, 12);
+
+      try {
+        customer = await User.create({
+          name: parsed.data.customerName,
+          email,
+          passwordHash,
+          role: "client",
+          active: true,
+          mustChangePassword: true,
+        });
+        createdUserId = customer._id;
+        accountCreated = true;
+      } catch (createError) {
+        if (!(typeof createError === "object" && createError !== null && "code" in createError && createError.code === 11000)) {
+          throw createError;
+        }
+        customer = await User.findOne({ email, active: true });
+        temporaryPassword = undefined;
+        if (!customer || customer.role !== "client") {
+          return { success: false, error: "Não foi possível associar uma conta de cliente a este e-mail." };
+        }
+      }
+    }
+
+    const userId = customer._id as mongoose.Types.ObjectId;
+    const activeEntry = await WaitlistEntry.findOne({
+      businessId,
+      userId,
+      status: { $in: ACTIVE_STATUSES },
+    }).select("_id").lean();
+
+    if (activeEntry) {
+      if (createdUserId) await User.deleteOne({ _id: createdUserId });
+      return {
+        success: false,
+        error: "Este cliente já possui uma entrada ativa na fila deste restaurante.",
+      };
+    }
+
     const entry = await WaitlistEntry.create({
       businessId,
+      userId,
+      activeUserKey: userId.toString(),
       customerName: parsed.data.customerName,
       phone: parsed.data.phone,
       notes: parsed.data.notes,
@@ -90,15 +162,20 @@ export async function addRestaurantWaitlistEntry(formData: FormData) {
       status: "waiting",
       joinedAt: new Date(),
     });
+    entryCreated = true;
 
     refreshWaitlistPaths(parsed.data.businessId);
+    revalidatePath("/cliente/fila");
 
     return {
       success: true,
       entryId: entry._id.toString(),
       position: (await getActiveEntryPosition(businessId, entry._id)) ?? 1,
+      accountCreated,
+      ...(accountCreated && temporaryPassword ? { temporaryPassword } : {}),
     };
   } catch (error) {
+    if (createdUserId && !entryCreated) await User.deleteOne({ _id: createdUserId }).catch(() => undefined);
     console.error("addRestaurantWaitlistEntry:", error);
 
     return {
@@ -237,13 +314,20 @@ export async function joinRestaurantWaitlistAsClient(formData: FormData) {
     category: "restaurant",
     status: "active",
   })
-    .select("_id name")
+    .select("_id name slug timezone availability")
     .lean();
 
   if (!business) {
     return {
       success: false,
       error: "Restaurante não encontrado ou indisponível.",
+    };
+  }
+
+  if (!isBusinessWithinHours(business.availability, business.timezone)) {
+    return {
+      success: false,
+      error: "A fila está fechada no momento. Você poderá entrar durante os dias e horários de atendimento do restaurante.",
     };
   }
 

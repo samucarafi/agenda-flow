@@ -9,11 +9,19 @@ export default function JoinWaitlistForm({
   businessName,
   accentColor,
   accentText,
+  isQueueOpen,
+  openingTime,
+  closingTime,
+  workingDaysLabel,
 }: {
   businessId: string;
   businessName: string;
   accentColor: string;
   accentText: string;
+  isQueueOpen: boolean;
+  openingTime: string;
+  closingTime: string;
+  workingDaysLabel: string;
 }) {
   const router = useRouter();
   const [partySize, setPartySize] = useState("2");
@@ -48,7 +56,7 @@ export default function JoinWaitlistForm({
   }
 
   return (
-    <section className="rounded-3xl border border-current/15 p-6 shadow-sm sm:p-8" style={{ backgroundColor: "color-mix(in srgb, var(--business-primary) 86%, white)" }}>
+    <section data-business-surface className="rounded-3xl border border-current/15 p-6 shadow-sm sm:p-8" style={{ backgroundColor: "color-mix(in srgb, var(--business-primary) 86%, white)" }}>
       <div className="flex size-12 items-center justify-center rounded-2xl text-2xl" style={{ backgroundColor: `${accentColor}22` }}>
         🍽️
       </div>
@@ -61,7 +69,11 @@ export default function JoinWaitlistForm({
         Informe o tamanho do grupo para entrar na fila de espera de {businessName}. Você poderá acompanhar a chamada nesta página e na sua conta.
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-6 space-y-5" aria-busy={pending}>
+      {!isQueueOpen ? (
+        <div role="status" className="mt-6 rounded-2xl border border-current/15 bg-current/5 p-4 text-sm leading-6">
+          A fila está fechada no momento. Você poderá entrar durante o horário de atendimento: {workingDaysLabel || "dias informados pelo restaurante"}, das {openingTime} às {closingTime}.
+        </div>
+      ) : <form onSubmit={handleSubmit} className="mt-6 space-y-5" aria-busy={pending}>
         <label htmlFor="waitlist-party-size" className="block space-y-2 text-sm font-medium">
           Quantas pessoas estão no grupo?
           <input
@@ -108,7 +120,7 @@ export default function JoinWaitlistForm({
           {pending ? "Entrando na fila…" : "Entrar na fila de espera"}
         </button>
         <p className="sr-only" role="status" aria-live="polite">{pending ? "Enviando sua solicitação para entrar na fila." : ""}</p>
-      </form>
+      </form>}
     </section>
   );
 }

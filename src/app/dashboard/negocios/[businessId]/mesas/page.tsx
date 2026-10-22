@@ -9,10 +9,11 @@ import { PageHeading } from "@/components/dashboard/PageHeading";
 
 type PageProps = {
   params: Promise<{ businessId: string }>;
+  searchParams: Promise<{ returnTo?: string }>;
 };
 
-export default async function RestaurantTablesPage({ params }: PageProps) {
-  const { businessId } = await params;
+export default async function RestaurantTablesPage({ params, searchParams }: PageProps) {
+  const [{ businessId }, query] = await Promise.all([params, searchParams]);
 
   const access = await getOwnedBusiness(businessId);
 
@@ -105,9 +106,11 @@ export default async function RestaurantTablesPage({ params }: PageProps) {
         />
 
         <TableManager
+          key={`${tables.map((table) => table.id).join(",")}|${inactiveTables.map((table) => table.id).join(",")}`}
           businessId={businessId}
           initialTables={tables}
           initialInactiveTables={inactiveTables}
+          continueToPublish={query.returnTo === "publish" && tables.length === 0}
         />
       </div>
     </DashboardLayout>

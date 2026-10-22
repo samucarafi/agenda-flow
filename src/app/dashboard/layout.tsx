@@ -14,6 +14,8 @@ export default async function DashboardLayout({
     redirect("/entrar");
   }
 
+  if (user.mustChangePassword) redirect("/alterar-senha");
+
   if (user.role !== "owner") {
     redirect("/cliente");
   }

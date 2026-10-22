@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import {
   createRestaurantMenuCategory,
   createRestaurantMenuItem,
@@ -34,6 +34,7 @@ export default function MenuManager({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
   async function submit(
     event: FormEvent<HTMLFormElement>,
@@ -110,6 +111,17 @@ export default function MenuManager({
   const money = (value: number | null) => value === null
     ? "Preço sob consulta"
     : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+  const visibleCategories = useMemo(
+    () => initialCategories.filter((category) => selectedCategory === "all" || category.id === selectedCategory),
+    [initialCategories, selectedCategory],
+  );
+  const itemCountByCategory = useMemo(
+    () => new Map(initialCategories.map((category) => [
+      category.id,
+      initialItems.filter((item) => item.categoryId === category.id).length,
+    ])),
+    [initialCategories, initialItems],
+  );
 
   return (
     <div className="space-y-6">
@@ -182,9 +194,28 @@ export default function MenuManager({
           <h2 className="text-xl font-semibold text-slate-950">Itens do menu</h2>
           <p className="mt-1 text-sm text-slate-500">Itens indisponíveis ficam ocultos da página pública.</p>
         </div>
+        {initialCategories.length > 0 && (
+          <div aria-label="Filtrar itens por categoria" className="flex gap-2 overflow-x-auto pb-1">
+            <CategoryFilterButton
+              active={selectedCategory === "all"}
+              onClick={() => setSelectedCategory("all")}
+              label="Todas"
+              count={initialItems.length}
+            />
+            {initialCategories.map((category) => (
+              <CategoryFilterButton
+                key={category.id}
+                active={selectedCategory === category.id}
+                onClick={() => setSelectedCategory(category.id)}
+                label={category.name}
+                count={itemCountByCategory.get(category.id) ?? 0}
+              />
+            ))}
+          </div>
+        )}
         {!initialCategories.length ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">Comece criando uma categoria para o cardápio.</div>
-        ) : initialCategories.map((category) => {
+        ) : visibleCategories.map((category) => {
           const categoryItems = initialItems.filter((item) => item.categoryId === category.id);
           return (
             <section key={category.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -229,5 +260,29 @@ export default function MenuManager({
         })}
       </section>
     </div>
+  );
+}
+
+function CategoryFilterButton({
+  active,
+  onClick,
+  label,
+  count,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  count: number;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition ${active ? "border-indigo-600 bg-indigo-600 text-white" : "border-slate-200 bg-white text-slate-700 hover:border-indigo-300 hover:bg-indigo-50"}`}
+    >
+      {label}
+      <span className={`rounded-full px-2 py-0.5 text-xs ${active ? "bg-white/15 text-white" : "bg-slate-100 text-slate-600"}`}>{count}</span>
+    </button>
   );
 }

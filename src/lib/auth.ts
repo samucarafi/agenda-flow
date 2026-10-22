@@ -47,7 +47,7 @@ export async function getCurrentUser() {
     _id: session.userId,
     active: true,
   })
-    .select("_id name email role")
+    .select("_id name email role mustChangePassword")
     .lean();
 
   if (!user) {
@@ -65,5 +65,6 @@ export async function getCurrentUser() {
     name: user.name,
     email: user.email,
     role: user.role,
+    mustChangePassword: Boolean(user.mustChangePassword),
   };
 }

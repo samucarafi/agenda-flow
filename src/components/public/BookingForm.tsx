@@ -5,6 +5,7 @@ import {
   createPublicAppointment,
   getAvailableSlots,
 } from "@/actions/public-bookings";
+import { getBusinessTheme } from "@/lib/business-theme";
 
 type ServiceItem = {
   id: string;
@@ -22,6 +23,7 @@ type BusinessItem = {
   category: string;
   primaryColor: string;
   accentColor: string;
+  template: string;
 };
 
 type Props = {
@@ -65,6 +67,7 @@ export function BookingForm({
 
   const selectedService =
     services.find((service) => service.id === serviceId) ?? services[0];
+  const theme = getBusinessTheme(business);
 
   useEffect(() => {
     let cancelled = false;
@@ -148,13 +151,13 @@ export function BookingForm({
       onSubmit={handleSubmit}
       className="grid gap-6 lg:grid-cols-[1fr_320px]"
     >
-      <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 sm:p-7">
+      <section data-business-surface className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 sm:p-7">
         <div className="flex items-start gap-4">
           <div
             className="flex size-12 shrink-0 items-center justify-center rounded-2xl text-xl"
             style={{
               backgroundColor: `${business.accentColor}22`,
-              color: business.accentColor,
+              color: theme.accentLabelColor,
             }}
             aria-hidden="true"
           >
@@ -236,6 +239,9 @@ export function BookingForm({
                         ? "border-cyan-400 bg-cyan-400 text-slate-950"
                         : "border-white/10 bg-white/[0.03] text-slate-200 hover:border-cyan-400/60 hover:bg-white/[0.07]"
                     }`}
+                    style={active
+                      ? { backgroundColor: theme.accentColor, borderColor: theme.accentColor, color: theme.accentText }
+                      : { borderColor: "var(--business-border)", backgroundColor: "var(--business-control-surface)", color: theme.primaryText }}
                   >
                     {slot}
                   </button>
@@ -308,8 +314,8 @@ export function BookingForm({
         <button
           type="submit"
           disabled={submitting || loadingSlots || !selectedTime || previewMode}
-          className="mt-6 w-full rounded-xl px-5 py-3.5 font-semibold text-slate-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-          style={{ backgroundColor: business.accentColor }}
+          className="mt-6 w-full rounded-xl px-5 py-3.5 font-semibold transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+          style={{ backgroundColor: theme.accentColor, color: theme.accentText }}
         >
           {previewMode
             ? "Pré-visualização — reserva desativada"
@@ -319,7 +325,7 @@ export function BookingForm({
         </button>
       </section>
 
-      <aside className="h-fit rounded-3xl border border-white/10 bg-white/[0.04] p-5 sm:p-6 lg:sticky lg:top-6">
+      <aside data-business-surface className="h-fit rounded-3xl border border-white/10 bg-white/[0.04] p-5 sm:p-6 lg:sticky lg:top-6">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
           Resumo
         </p>

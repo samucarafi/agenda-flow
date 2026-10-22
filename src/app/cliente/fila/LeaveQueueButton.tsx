@@ -48,13 +48,13 @@ export default function LeaveQueueButton({
         type="button"
         onClick={() => void handleLeave()}
         disabled={pending}
-        className="rounded-xl border border-rose-200 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60"
+        className="rounded-xl border border-rose-300/25 bg-rose-300/10 px-4 py-2.5 text-sm font-semibold text-rose-200 transition hover:bg-rose-300/15 disabled:opacity-60"
       >
         {pending ? "Saindo..." : "Cancelar participação na fila"}
       </button>
 
       {error && (
-        <p role="alert" className="mt-2 text-sm text-rose-700">
+        <p role="alert" className="mt-2 text-sm text-rose-300">
           {error}
         </p>
       )}

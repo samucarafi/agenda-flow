@@ -10,6 +10,7 @@ import { PublicBusinessNavigation } from "@/components/navigation/PublicBusiness
 import { getBusinessTheme } from "@/lib/business-theme";
 import RestaurantTable from "@/models/RestaurantTable";
 import { reconcileSeatedEntry } from "@/lib/reconcile-seated-entry";
+import { isBusinessWithinHours } from "@/lib/business-hours";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ export default async function PublicRestaurantWaitlistPage({
     category: "restaurant",
     status: "active",
   })
-    .select("_id name slug theme")
+    .select("_id name slug theme timezone availability")
     .lean();
 
   if (!business) notFound();
@@ -91,17 +92,34 @@ export default async function PublicRestaurantWaitlistPage({
     ? activeEntries.findIndex((entry) => entry._id.toString() === visibleEntry._id.toString()) + 1
     : 0;
   const theme = getBusinessTheme(business.theme);
+  const queueOpen = isBusinessWithinHours(business.availability, business.timezone);
+  const weekdayNames = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
+  const workingDaysLabel = business.availability.workingDays
+    .map((day) => weekdayNames[day])
+    .filter(Boolean)
+    .join(", ");
   const completedEntry = latestEntry?.status === "completed" ? latestEntry : null;
   return (
     <main
-      className="min-h-screen px-4 py-8 sm:px-6 sm:py-12"
+      className="business-public-page min-h-screen px-4 py-8 sm:px-6 sm:py-12"
       data-template={theme.template}
       style={{
-        backgroundColor: theme.primaryColor,
+        background: theme.template === "minimal"
+          ? theme.primaryColor
+          : theme.template === "bold"
+            ? `linear-gradient(135deg, ${theme.primaryColor}, color-mix(in srgb, ${theme.primaryColor} 78%, ${theme.accentColor}))`
+            : `linear-gradient(145deg, ${theme.primaryColor}, color-mix(in srgb, ${theme.primaryColor} 94%, ${theme.accentColor}))`,
         color: theme.primaryText,
         "--business-primary": theme.primaryColor,
         "--business-accent": theme.accentColor,
         "--business-accent-text": theme.accentText,
+        "--business-surface": `color-mix(in srgb, ${theme.primaryColor} 94%, ${theme.primaryText})`,
+        "--business-text": theme.primaryText,
+        "--business-control-surface": `color-mix(in srgb, ${theme.primaryColor} 88%, ${theme.primaryText})`,
+        "--business-border": theme.template === "bold"
+          ? `color-mix(in srgb, ${theme.accentColor} 42%, transparent)`
+          : `color-mix(in srgb, ${theme.primaryText} ${theme.template === "minimal" ? 12 : 16}%, transparent)`,
+        "--business-radius": theme.template === "minimal" ? "1rem" : theme.template === "bold" ? "1.5rem" : "1.125rem",
       } as React.CSSProperties}
     >
       <div className="mx-auto max-w-xl">
@@ -115,7 +133,7 @@ export default async function PublicRestaurantWaitlistPage({
           foregroundColor={theme.primaryText}
         />
 
-        <header className="mb-8 mt-8">
+        <header className="mb-8 mt-8" data-business-hero>
           <p className="text-sm font-semibold" style={{ color: theme.accentLabelColor }}>
             AGENDAFLOW · FILA DE ESPERA
           </p>
@@ -162,6 +180,10 @@ export default async function PublicRestaurantWaitlistPage({
               businessName={business.name}
               accentColor={theme.accentColor}
               accentText={theme.accentText}
+              isQueueOpen={queueOpen}
+              openingTime={business.availability.openingTime}
+              closingTime={business.availability.closingTime}
+              workingDaysLabel={workingDaysLabel}
             />
           </>
         ) : (

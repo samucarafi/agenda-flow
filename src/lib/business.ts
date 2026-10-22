@@ -22,7 +22,7 @@ export async function getOwnedBusiness(businessId: string) {
     ownerId: user.id,
   })
     .select(
-      "_id ownerId name slug category status timezone theme bookingSettings",
+      "_id ownerId name slug category status timezone theme bookingSettings availability",
     )
     .lean();
 

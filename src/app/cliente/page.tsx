@@ -4,7 +4,6 @@ import {
   FiCalendar,
   FiClock,
   FiArrowUpRight,
-  FiMapPin,
   FiSearch,
 } from "react-icons/fi";
 import { ClientAppointmentActions } from "@/components/client/ClientAppointmentActions";
@@ -15,7 +14,9 @@ import Client from "@/models/Client";
 import Business from "@/models/Business";
 import "@/models/Service";
 import { LogoutButton } from "@/components/auth/LogoutButton";
-import { ClientNavigation } from "@/components/navigation/ClientNavigation";
+import { ClientAreaLayout } from "@/components/client/ClientAreaLayout";
+import { BusinessDirectory } from "@/components/client/BusinessDirectory";
+import { AppointmentHistory } from "@/components/client/AppointmentHistory";
 export const dynamic = "force-dynamic";
 
 const statusLabels: Record<string, string> = {
@@ -72,13 +73,22 @@ export default async function ClientPage() {
 
     Business.find({
       status: "active",
-      "bookingSettings.enabled": true,
+      $or: [{ "bookingSettings.enabled": true }, { category: "restaurant" }],
     })
-      .select("name slug category description")
+      .select("name slug category description address.zipCode")
       .sort({ name: 1 })
-      .limit(12)
+      .limit(100)
       .lean(),
   ]);
+
+  const serializedBusinesses = businesses.map((business) => ({
+    id: business._id.toString(),
+    name: business.name,
+    slug: business.slug,
+    category: business.category,
+    description: business.description ?? "",
+    zipCode: business.address?.zipCode ? String(business.address.zipCode) : "",
+  }));
 
   const serializedAppointments = appointments.map((appointment) => {
     const service = appointment.serviceId as unknown as {
@@ -144,9 +154,7 @@ export default async function ClientPage() {
   );
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-8 text-white sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl">
-        <ClientNavigation />
+    <ClientAreaLayout>
         <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-medium tracking-wide text-cyan-400">
@@ -280,37 +288,7 @@ export default async function ClientPage() {
         </section>
 
         <section className="mt-10">
-          <h2 className="text-xl font-semibold">Histórico</h2>
-          <p className="mt-1 text-sm text-slate-400">
-            Seus atendimentos anteriores e agendamentos cancelados.
-          </p>
-
-          {history.length === 0 ? (
-            <p className="mt-4 rounded-xl border border-white/10 p-5 text-sm text-slate-400">
-              Seu histórico aparecerá aqui quando houver agendamentos.
-            </p>
-          ) : (
-            <div className="mt-4 divide-y divide-white/10 rounded-2xl border border-white/10 bg-white/[0.02]">
-              {history.map((appointment) => (
-                <div
-                  key={appointment.id}
-                  className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div>
-                    <p className="font-medium">{appointment.serviceName}</p>
-                    <p className="mt-1 text-sm text-slate-400">
-                      {appointment.businessName} ·{" "}
-                      {formatDate(appointment.date)} · {appointment.startTime}
-                    </p>
-                  </div>
-
-                  <span className="text-xs text-slate-400">
-                    {statusLabels[appointment.status] ?? appointment.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+          <AppointmentHistory entries={history} statusLabels={statusLabels} />
         </section>
 
         <section id="estabelecimentos" className="mt-12 scroll-mt-8">
@@ -321,9 +299,8 @@ export default async function ClientPage() {
             </p>
           </div>
 
-          {businesses.length === 0 ? (
+          {serializedBusinesses.length === 0 ? (
             <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-              <FiMapPin size={24} className="text-cyan-400" />
               <p className="mt-3 font-medium">
                 Ainda não há estabelecimentos disponíveis.
               </p>
@@ -332,44 +309,8 @@ export default async function ClientPage() {
                 habilitarem as reservas públicas.
               </p>
             </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {businesses.map((business) => (
-                <article
-                  key={business._id.toString()}
-                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-cyan-400/30"
-                >
-                  <div className="flex size-11 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-400">
-                    <FiMapPin size={21} />
-                  </div>
-
-                  <h3 className="mt-4 text-lg font-semibold">
-                    {business.name}
-                  </h3>
-
-                  <p className="mt-1 text-sm text-slate-400">
-                    {categoryLabels[business.category] ?? "Estabelecimento"}
-                  </p>
-
-                  {business.description && (
-                    <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-400">
-                      {business.description}
-                    </p>
-                  )}
-
-                  <Link
-                    href={`/b/${business.slug}`}
-                    className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-cyan-400 hover:text-cyan-300"
-                  >
-                    Conhecer estabelecimento
-                    <FiArrowUpRight size={17} />
-                  </Link>
-                </article>
-              ))}
-            </div>
-          )}
+          ) : <BusinessDirectory businesses={serializedBusinesses} />}
         </section>
-      </div>
-    </main>
+    </ClientAreaLayout>
   );
 }

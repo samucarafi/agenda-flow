@@ -10,6 +10,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import RestaurantTable from "@/models/RestaurantTable";
 import { BusinessGalleryManager } from "@/components/dashboard/businesses/BusinessGalleryManager";
 import { BusinessAddressFields } from "@/components/dashboard/businesses/BusinessAddressFields";
+import { ThemeTemplatePicker } from "@/components/dashboard/businesses/ThemeTemplatePicker";
 interface PageProps {
   params: Promise<{ businessId: string }>;
   searchParams: Promise<{
@@ -93,6 +94,8 @@ export default async function BusinessSettingsPage({
       backHref={`/dashboard/negocios/${businessId}`}
       backLabel="Voltar ao negócio"
       showHeader={false}
+      contentVariant="dark"
+      fullBleed
     >
       <main className="min-h-screen bg-slate-950 px-4 py-8 text-white sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
@@ -155,7 +158,9 @@ export default async function BusinessSettingsPage({
             >
               {success === "publish"
                 ? "Negócio publicado! A página pública está habilitada."
-                : "Configurações salvas com sucesso."}
+                : success === "tables"
+                  ? "Mesa cadastrada. Agora você já pode publicar seu restaurante."
+                  : "Configurações salvas com sucesso."}
             </div>
           )}
 
@@ -182,66 +187,11 @@ export default async function BusinessSettingsPage({
           <form action={saveBusinessSettings} className="space-y-6">
             <input type="hidden" name="businessId" value={businessId} />
             <BusinessAddressFields initialAddress={business.address} />
-            <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-7">
-              <h2 className="text-lg font-semibold">Identidade visual</h2>
-
-              <p className="mt-1 text-sm leading-6 text-slate-400">
-                Personalize as cores usadas na página pública do seu negócio.
-              </p>
-
-              <div className="mt-5 grid gap-5 sm:grid-cols-2">
-                <label className="text-sm">
-                  <span className="mb-2 block text-slate-300">
-                    Cor principal
-                  </span>
-                  <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-slate-900 p-2">
-                    <input
-                      type="color"
-                      name="primaryColor"
-                      defaultValue={theme.primaryColor}
-                      className="h-10 w-12 cursor-pointer rounded-lg border-0 bg-transparent"
-                    />
-                    <span className="text-xs text-slate-400">
-                      Fundo principal da página
-                    </span>
-                  </div>
-                </label>
-
-                <label className="text-sm">
-                  <span className="mb-2 block text-slate-300">
-                    Cor de destaque
-                  </span>
-                  <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-slate-900 p-2">
-                    <input
-                      type="color"
-                      name="accentColor"
-                      defaultValue={theme.accentColor}
-                      className="h-10 w-12 cursor-pointer rounded-lg border-0 bg-transparent"
-                    />
-                    <span className="text-xs text-slate-400">
-                      Botões e elementos destacados
-                    </span>
-                  </div>
-                </label>
-
-                <label className="text-sm sm:col-span-2">
-                  <span className="mb-2 block text-slate-300">Estilo</span>
-                  <select
-                    name="themeTemplate"
-                    defaultValue={
-                      ["default", "minimal", "bold"].includes(theme.template)
-                        ? theme.template
-                        : "default"
-                    }
-                    className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-white"
-                  >
-                    <option value="default">Clássico</option>
-                    <option value="minimal">Minimalista</option>
-                    <option value="bold">Marcante</option>
-                  </select>
-                </label>
-              </div>
-            </section>
+            <ThemeTemplatePicker
+              initialTemplate={theme.template}
+              initialPrimaryColor={theme.primaryColor || "#0F172A"}
+              initialAccentColor={theme.accentColor || "#06B6D4"}
+            />
             <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-7">
               <h2 className="text-lg font-semibold">Dias de funcionamento</h2>
               <p className="mt-1 text-sm text-slate-400">
@@ -402,15 +352,17 @@ export default async function BusinessSettingsPage({
               )}
 
               {isRestaurant ? (
-                <Link
-                  className="mt-4 inline-flex rounded-xl border border-cyan-400/30 px-4 py-2.5 text-sm font-semibold text-cyan-300 hover:bg-cyan-400/10"
-                  href={`/dashboard/negocios/${businessId}/mesas`}
+                <button
+                  type="submit"
+                  name="intent"
+                  value="save-and-tables"
+                  className="mt-4 inline-flex rounded-xl border border-cyan-400/30 px-4 py-2.5 text-sm font-semibold text-cyan-200 hover:bg-cyan-400/10"
                 >
-                  Gerenciar mesas
-                </Link>
+                  Salvar e cadastrar mesas
+                </button>
               ) : (
                 <Link
-                  className="mt-4 inline-flex rounded-xl border border-cyan-400/30 px-4 py-2.5 text-sm font-semibold text-cyan-300 hover:bg-cyan-400/10"
+                  className="mt-4 inline-flex rounded-xl border border-cyan-400/30 px-4 py-2.5 text-sm font-semibold text-cyan-200 hover:bg-cyan-400/10"
                   href={`/dashboard/negocios/${businessId}/servicos`}
                 >
                   Gerenciar serviços

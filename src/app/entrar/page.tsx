@@ -20,6 +20,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const user = await getCurrentUser();
 
   if (user) {
+    if (user.mustChangePassword) redirect("/alterar-senha");
     redirect(user.role === "owner" ? "/dashboard" : (safeNext ?? "/cliente"));
   }
 

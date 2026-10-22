@@ -43,10 +43,12 @@ export default function TableManager({
   businessId,
   initialTables,
   initialInactiveTables,
+  continueToPublish = false,
 }: {
   businessId: string;
   initialTables: TableItem[];
   initialInactiveTables: TableItem[];
+  continueToPublish?: boolean;
 }) {
   const router = useRouter();
   const [tables, setTables] = useState(initialTables);
@@ -85,6 +87,7 @@ export default function TableManager({
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const firstTableInSetup = continueToPublish && tables.length === 0;
 
     const formData = new FormData();
     formData.set("businessId", businessId);
@@ -96,6 +99,10 @@ export default function TableManager({
     if (success) {
       setName("");
       setCapacity("2");
+      if (firstTableInSetup) {
+        router.push(`/dashboard/negocios/${businessId}/configuracoes?success=tables`);
+        return;
+      }
       router.refresh();
     }
   }

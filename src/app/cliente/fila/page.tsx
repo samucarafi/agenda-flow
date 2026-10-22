@@ -5,9 +5,10 @@ import { connectToDatabase } from "@/lib/mongodb";
 import WaitlistEntry from "@/models/WaitlistEntry";
 import QueueAutoRefresh from "./QueueAutoRefresh";
 import LeaveQueueButton from "./LeaveQueueButton";
+import QueueHistory from "./QueueHistory";
 import mongoose from "mongoose";
 import "@/models/RestaurantTable";
-import { ClientNavigation } from "@/components/navigation/ClientNavigation";
+import { ClientAreaLayout } from "@/components/client/ClientAreaLayout";
 import { reconcileSeatedEntry } from "@/lib/reconcile-seated-entry";
 
 export const dynamic = "force-dynamic";
@@ -115,18 +116,16 @@ export default async function ClientQueuePage() {
   );
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-4xl">
-        <ClientNavigation />
+    <ClientAreaLayout width="standard">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-indigo-600">
+            <p className="text-sm font-semibold text-cyan-300">
               AGENDAFLOW · ÁREA DO CLIENTE
             </p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
               Minha fila
             </h1>
-            <p className="mt-2 text-slate-600">
+            <p className="mt-2 text-slate-300">
               Acompanhe suas entradas e veja quando for chamado.
             </p>
           </div>
@@ -139,11 +138,11 @@ export default async function ClientQueuePage() {
 
         <section className="mt-6 space-y-4">
           {activeEntries.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
-              <h2 className="font-semibold text-slate-900">
+            <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.03] p-8 text-center">
+              <h2 className="font-semibold text-white">
                 Você não está em nenhuma fila ativa
               </h2>
-              <p className="mt-2 text-sm text-slate-600">
+              <p className="mt-2 text-sm text-slate-300">
                 Acesse a página pública de um restaurante para entrar na fila.
               </p>
             </div>
@@ -151,33 +150,33 @@ export default async function ClientQueuePage() {
             activeEntries.map((entry) => (
               <article
                 key={entry.id}
-                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+                className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 shadow-sm sm:p-6"
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-sm font-medium text-indigo-600">
+                    <p className="text-sm font-medium text-cyan-300">
                       {entry.businessName}
                     </p>
-                    <h2 className="mt-1 text-xl font-bold text-slate-950">
+                    <h2 className="mt-1 text-xl font-bold text-white">
                       {statusLabels[entry.status] ?? entry.status}
                     </h2>
-                    <p className="mt-2 text-sm text-slate-600">
+                    <p className="mt-2 text-sm text-slate-300">
                       Grupo de {entry.partySize}{" "}
                       {entry.partySize === 1 ? "pessoa" : "pessoas"}
                     </p>
                     {entry.tableName && (
-                      <p className="mt-1 text-sm font-medium text-emerald-700">
+                      <p className="mt-1 text-sm font-medium text-emerald-300">
                         Mesa: {entry.tableName}
                       </p>
                     )}
                   </div>
 
                   {entry.status === "waiting" && (
-                    <div className="rounded-2xl bg-indigo-50 px-6 py-4 text-center">
-                      <p className="text-xs font-medium uppercase tracking-wide text-indigo-700">
+                    <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-6 py-4 text-center">
+                      <p className="text-xs font-medium uppercase tracking-wide text-cyan-200">
                         Sua posição
                       </p>
-                      <p className="mt-1 text-4xl font-bold text-indigo-950">
+                      <p className="mt-1 text-4xl font-bold text-white">
                         {entry.position}
                       </p>
                     </div>
@@ -186,7 +185,7 @@ export default async function ClientQueuePage() {
                   {entry.status === "called" && (
                     <div
                       role="status"
-                      className="rounded-xl bg-amber-50 px-4 py-3 font-semibold text-amber-900"
+                      className="rounded-xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 font-semibold text-amber-200"
                     >
                       Procure a equipe do restaurante.
                     </div>
@@ -195,7 +194,7 @@ export default async function ClientQueuePage() {
                   {entry.businessSlug && (
                     <Link
                       href={`/b/${entry.businessSlug}/fila`}
-                      className="mt-4 inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                      className="mt-4 inline-flex items-center justify-center rounded-xl bg-cyan-400 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
                     >
                       Acompanhar fila deste restaurante
                     </Link>
@@ -212,7 +211,7 @@ export default async function ClientQueuePage() {
                 {entry.businessSlug && (
                   <Link
                     href={`/b/${entry.businessSlug}`}
-                    className="mt-5 inline-flex text-sm font-semibold text-indigo-700 hover:text-indigo-900"
+                    className="mt-5 inline-flex text-sm font-semibold text-cyan-300 hover:text-cyan-200"
                   >
                     Ver restaurante →
                   </Link>
@@ -222,33 +221,7 @@ export default async function ClientQueuePage() {
           )}
         </section>
 
-        {history.length > 0 && (
-          <section className="mt-10">
-            <h2 className="text-xl font-semibold text-slate-950">Histórico</h2>
-            <div className="mt-4 divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-              {history.map((entry) => (
-                <div
-                  key={entry.id}
-                  className="flex flex-wrap items-center justify-between gap-3 p-4"
-                >
-                  <div>
-                    <p className="font-medium text-slate-900">
-                      {entry.businessName}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-500">
-                      Grupo de {entry.partySize}{" "}
-                      {entry.partySize === 1 ? "pessoa" : "pessoas"}
-                    </p>
-                  </div>
-                  <span className="text-sm text-slate-600">
-                    {statusLabels[entry.status] ?? entry.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-      </div>
-    </main>
+        <QueueHistory entries={history} statusLabels={statusLabels} />
+    </ClientAreaLayout>
   );
 }

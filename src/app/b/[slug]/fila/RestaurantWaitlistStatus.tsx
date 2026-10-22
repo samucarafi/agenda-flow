@@ -76,7 +76,7 @@ export default function RestaurantWaitlistStatus({
   }
 
   return (
-    <section className="rounded-3xl border border-current/15 p-6 shadow-sm sm:p-8" style={{ backgroundColor: "color-mix(in srgb, var(--business-primary) 86%, white)" }}>
+    <section data-business-surface className="rounded-3xl border border-current/15 p-6 shadow-sm sm:p-8" style={{ backgroundColor: "color-mix(in srgb, var(--business-primary) 86%, white)" }}>
       <p className="text-sm font-semibold" style={{ color: theme.accentLabelColor }}>SUA PARTICIPAÇÃO</p>
 
       <h2 className="mt-2 text-2xl font-bold">

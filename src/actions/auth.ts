@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import User from "@/models/User";
 import { connectToDatabase } from "@/lib/mongodb";
 import { createSession } from "@/lib/session";
-import { clearSession, setSessionCookie } from "@/lib/auth";
+import { clearSession, getCurrentUser, setSessionCookie } from "@/lib/auth";
 
 const loginSchema = z.object({
   email: z.string().trim().email("Informe um e-mail válido."),
@@ -76,7 +76,7 @@ export async function login(
     };
   }
 
-  const token = await createSession(user._id.toString());
+  const token = await createSession(user._id.toString(), user.mustChangePassword);
 
   await setSessionCookie(token);
 
@@ -98,7 +98,52 @@ export async function login(
     ? requestedNext
     : null;
 
-  redirect(user.role === "owner" ? "/dashboard" : (safeNext ?? "/cliente"));
+  redirect(user.mustChangePassword ? "/alterar-senha" : user.role === "owner" ? "/dashboard" : (safeNext ?? "/cliente"));
+}
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Informe a senha temporária."),
+  newPassword: z.string().min(8, "A nova senha deve ter pelo menos 8 caracteres.").max(100, "A senha é muito longa."),
+  confirmPassword: z.string().min(1, "Confirme sua nova senha."),
+}).refine((values) => values.newPassword === values.confirmPassword, {
+  message: "As senhas não coincidem.",
+  path: ["confirmPassword"],
+});
+
+export async function changeTemporaryPassword(
+  _previousState: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
+  const parsed = changePasswordSchema.safeParse({
+    currentPassword: formData.get("currentPassword"),
+    newPassword: formData.get("newPassword"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Confira os dados informados." };
+  }
+
+  const currentUser = await getCurrentUser();
+  if (!currentUser) return { success: false, error: "Entre na sua conta para continuar." };
+
+  await connectToDatabase();
+  const user = await User.findOne({ _id: currentUser.id, active: true }).select("+passwordHash");
+  if (!user || !user.mustChangePassword) {
+    return { success: false, error: "Esta conta não precisa trocar uma senha temporária." };
+  }
+
+  const passwordMatches = await bcrypt.compare(parsed.data.currentPassword, user.passwordHash);
+  if (!passwordMatches) return { success: false, error: "A senha temporária está incorreta." };
+
+  user.passwordHash = await bcrypt.hash(parsed.data.newPassword, 12);
+  user.mustChangePassword = false;
+  await user.save();
+
+  const token = await createSession(user._id.toString(), false);
+  await setSessionCookie(token);
+
+  redirect(user.role === "owner" ? "/dashboard" : "/cliente/fila");
 }
 
 export async function register(

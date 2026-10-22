@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const items = [
   { label: "Visão geral", href: "/cliente" },
   { label: "Minha fila", href: "/cliente/fila" },
+  { label: "Meu perfil", href: "/perfil" },
 ];
 
 export function ClientNavigation() {

@@ -10,6 +10,8 @@ export default function NewBusinessPage() {
       title="Novo negócio"
       description="Cadastre seu estabelecimento."
       showHeader={false}
+      contentVariant="dark"
+      fullBleed
     >
       <main className="min-h-full bg-slate-950 px-4 py-8 text-white sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl">

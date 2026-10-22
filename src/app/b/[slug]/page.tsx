@@ -67,7 +67,19 @@ export default async function PublicBusinessPage({ params }: PageProps) {
     menuItems.some((item) => item.categoryId.toString() === category._id.toString()),
   );
 
-  const { primaryColor, accentColor, primaryText, accentText, accentLabelColor } = getBusinessTheme(business.theme);
+  const {
+    template,
+    primaryColor,
+    accentColor,
+    primaryText,
+    accentText,
+    accentLabelColor,
+  } = getBusinessTheme(business.theme);
+  const businessSurface = `color-mix(in srgb, ${primaryColor} 94%, ${primaryText})`;
+  const businessBorder = template === "bold"
+    ? `color-mix(in srgb, ${accentColor} 42%, transparent)`
+    : `color-mix(in srgb, ${primaryText} ${template === "minimal" ? 12 : 16}%, transparent)`;
+  const businessRadius = template === "minimal" ? "1rem" : template === "bold" ? "1.5rem" : "1.125rem";
 
   const publicAddress = [
     business.address?.street
@@ -100,18 +112,27 @@ export default async function PublicBusinessPage({ params }: PageProps) {
 
   return (
     <main
-      className="min-h-screen text-white"
+      className="business-public-page min-h-screen text-white"
       style={
         {
           "--business-primary": primaryColor,
           "--business-accent": accentColor,
-          backgroundColor: primaryColor,
+          "--business-surface": businessSurface,
+          "--business-border": businessBorder,
+          "--business-radius": businessRadius,
+          "--business-text": primaryText,
+          "--business-control-surface": `color-mix(in srgb, ${primaryColor} 88%, ${primaryText})`,
+          background: template === "minimal"
+            ? primaryColor
+            : template === "bold"
+              ? `linear-gradient(135deg, ${primaryColor}, color-mix(in srgb, ${primaryColor} 78%, ${accentColor}))`
+              : `linear-gradient(145deg, ${primaryColor}, color-mix(in srgb, ${primaryColor} 94%, ${accentColor}))`,
           color: primaryText,
         } as React.CSSProperties
       }
-      data-template={getBusinessTheme(business.theme).template}
+      data-template={template}
     >
-      <header className="border-b border-current/10 bg-current/[0.02]">
+      <header className="border-b border-current/10 bg-current/[0.02]" data-business-surface>
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <span className="text-xs font-bold tracking-[0.2em]" style={{ color: accentLabelColor }}>AGENDAFLOW</span>
           <Link href="/cliente" className="text-sm opacity-80 transition hover:opacity-100">Área do cliente</Link>
@@ -119,21 +140,21 @@ export default async function PublicBusinessPage({ params }: PageProps) {
       </header>
 
       {/* Apresentação do estabelecimento */}
-      <section className="relative overflow-hidden border-b border-current/10">
+      <section className="relative overflow-hidden border-b border-current/10" data-business-hero>
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 opacity-20"
+          className={`pointer-events-none absolute inset-0 ${template === "minimal" ? "opacity-0" : template === "bold" ? "opacity-35" : "opacity-20"}`}
           style={{
             background: `radial-gradient(ellipse at top right, ${accentColor}, transparent 60%)`,
           }}
         />
 
-        <div className="relative mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
+        <div className={`relative mx-auto max-w-6xl px-4 sm:px-6 ${template === "bold" ? "py-20 sm:py-28" : template === "minimal" ? "py-12 sm:py-16" : "py-14 sm:py-20"}`}>
           <p className="text-sm font-semibold" style={{ color: accentLabelColor }}>
             {categoryLabels[business.category] ?? "Estabelecimento"}
           </p>
 
-          <h1 className="mt-3 max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl">
+          <h1 className={`mt-3 max-w-3xl font-bold tracking-tight ${template === "bold" ? "text-5xl sm:text-7xl" : "text-4xl sm:text-5xl"}`}>
             {business.name}
           </h1>
 
@@ -161,29 +182,17 @@ export default async function PublicBusinessPage({ params }: PageProps) {
           </div>
 
           {business.category === "restaurant" && (
-            <Link
-              href={`/b/${business.slug}/fila`}
-              className="mt-6 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold shadow-lg transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
-              style={{ backgroundColor: accentColor, color: accentText }}
-            >
-              Entrar na fila de espera <FiArrowRight aria-hidden="true" />
-            </Link>
-          )}
-
-          {publicAddress && (
-            <a
-              href={mapsSearchUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 inline-flex max-w-full items-start gap-2 text-sm opacity-80 underline-offset-4 transition hover:opacity-100 hover:underline"
-            >
-              <FiMapPin
-                aria-hidden="true"
-                className="mt-0.5 shrink-0"
-                style={{ color: accentLabelColor }}
-              />
-              <span className="break-words">{publicAddress}</span>
-            </a>
+            <div data-business-surface className="mt-8 max-w-xl rounded-2xl border border-current/15 bg-current/[0.04] p-5 sm:p-6">
+              <h2 className="text-lg font-semibold">Quer uma mesa?</h2>
+              <p className="mt-1 text-sm leading-6 opacity-75">Entre na fila e acompanhe sua posição pelo celular.</p>
+              <Link
+                href={`/b/${business.slug}/fila`}
+                className="mt-5 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold shadow-lg transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+                style={{ backgroundColor: accentColor, color: accentText }}
+              >
+                Entrar na fila de espera <FiArrowRight aria-hidden="true" />
+              </Link>
+            </div>
           )}
         </div>
       </section>
@@ -238,7 +247,7 @@ export default async function PublicBusinessPage({ params }: PageProps) {
               </p>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-current/10 bg-current/[0.04] shadow-2xl shadow-black/10">
+            <div data-business-surface className="overflow-hidden rounded-2xl border border-current/10 bg-current/[0.04] shadow-2xl shadow-black/10">
               <iframe
                 title={`Mapa de localização de ${business.name}`}
                 src={mapsEmbedUrl}
@@ -272,6 +281,7 @@ export default async function PublicBusinessPage({ params }: PageProps) {
             {business.gallery.map((image) => (
               <figure
                 key={image.publicId}
+                data-business-surface
                 className={`overflow-hidden rounded-2xl border border-current/10 bg-current/[0.04] ${
                   image.isCover ? "col-span-2 row-span-2" : ""
                 }`}
@@ -294,11 +304,11 @@ export default async function PublicBusinessPage({ params }: PageProps) {
       <section id="cardapio" className="mx-auto max-w-6xl scroll-mt-8 px-4 py-10 sm:px-6 sm:py-14">
         <div className="mb-7">
               <p className="text-sm font-semibold tracking-[0.18em]" style={{ color: accentLabelColor }}>CARDÁPIO</p>
-          <h2 className="mt-2 text-2xl font-bold sm:text-3xl">Menu digital</h2>
+          <h2 data-business-section-title className="mt-2 text-2xl font-bold sm:text-3xl">Menu digital</h2>
           <p className="mt-2 text-sm opacity-70">Confira os itens disponíveis antes de visitar o restaurante.</p>
         </div>
         {categoriesWithItems.length === 0 ? (
-          <div className="rounded-2xl border border-current/10 bg-current/[0.04] p-8 text-center">
+          <div data-business-surface className="rounded-2xl border border-current/10 bg-current/[0.04] p-8 text-center">
             <h3 className="font-semibold">Cardápio em preparação</h3>
             <p className="mt-2 text-sm opacity-70">O restaurante ainda não publicou itens do menu.</p>
           </div>
@@ -315,7 +325,7 @@ export default async function PublicBusinessPage({ params }: PageProps) {
                   </div>
                   <div className="grid gap-3 md:grid-cols-2">
                     {items.map((item) => (
-                      <article key={item._id.toString()} className="overflow-hidden rounded-2xl border border-current/10 bg-current/[0.04]">
+                      <article data-business-surface key={item._id.toString()} className="overflow-hidden rounded-2xl border border-current/10 bg-current/[0.04]">
                         {item.imageUrl && (
                           <div className="relative aspect-[16/9] w-full bg-current/5">
                             <Image
@@ -357,7 +367,7 @@ export default async function PublicBusinessPage({ params }: PageProps) {
             NOSSOS SERVIÇOS
           </p>
 
-          <h2 className="mt-2 text-2xl font-bold sm:text-3xl">
+          <h2 data-business-section-title className="mt-2 text-2xl font-bold sm:text-3xl">
             Escolha seu serviço
           </h2>
 
@@ -366,7 +376,7 @@ export default async function PublicBusinessPage({ params }: PageProps) {
           </p>
         </div>
         {services.length === 0 ? (
-          <div className="rounded-2xl border border-current/10 bg-current/[0.04] p-8 text-center">
+          <div data-business-surface className="rounded-2xl border border-current/10 bg-current/[0.04] p-8 text-center">
             <h3 className="font-semibold">Nenhum serviço disponível ainda</h3>
 
             <p className="mt-2 text-sm opacity-70">
@@ -378,6 +388,7 @@ export default async function PublicBusinessPage({ params }: PageProps) {
             {services.map((service) => (
               <article
                 key={service._id.toString()}
+                data-business-surface
                 className="flex flex-col rounded-2xl border border-current/10 bg-current/[0.04] p-5 transition duration-200 hover:-translate-y-0.5 hover:border-current/20 hover:bg-current/[0.07]"
               >
                 <div className="flex-1">

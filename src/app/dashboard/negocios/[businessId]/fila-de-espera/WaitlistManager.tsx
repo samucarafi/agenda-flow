@@ -51,6 +51,8 @@ type ActionResult = {
   error?: string;
   entryId?: string;
   position?: number;
+  temporaryPassword?: string;
+  accountCreated?: boolean;
 };
 
 export default function WaitlistManager({
@@ -68,11 +70,13 @@ export default function WaitlistManager({
   );
   const entries = initialEntries;
   const [customerName, setCustomerName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [partySize, setPartySize] = useState("2");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null);
   const [pending, setPending] = useState(false);
 
   const activeEntries = entries
@@ -88,10 +92,12 @@ export default function WaitlistManager({
     setPending(true);
     setError("");
     setMessage("");
+    setCredentials(null);
 
     const formData = new FormData();
     formData.set("businessId", businessId);
     formData.set("customerName", customerName);
+    formData.set("email", email);
     formData.set("notes", notes);
     formData.set("phone", phone);
     formData.set("partySize", partySize);
@@ -107,9 +113,11 @@ export default function WaitlistManager({
       }
 
       setMessage(
-        `Grupo adicionado à fila${result.position ? ` na posição ${result.position}` : ""}.`,
+        `Grupo adicionado à fila${result.position ? ` na posição ${result.position}` : ""}.${result.accountCreated ? " Uma conta de cliente foi criada." : " A entrada foi vinculada à conta existente."}`,
       );
+      setCredentials(result.temporaryPassword ? { email, password: result.temporaryPassword } : null);
       setCustomerName("");
+      setEmail("");
       setPhone("");
       setPartySize("2");
       setNotes("");
@@ -173,7 +181,7 @@ export default function WaitlistManager({
           Adicionar grupo
         </h2>
         <p className="mt-1 text-sm text-slate-500">
-          Cadastre os dados do grupo para organizar a ordem de atendimento.
+          Informe nome e e-mail. Se já houver conta, a entrada será vinculada; se não, criaremos uma conta com senha temporária para o cliente trocar no primeiro acesso.
         </p>
 
         <form onSubmit={submitEntry} className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -187,6 +195,20 @@ export default function WaitlistManager({
               onChange={(event) => setCustomerName(event.target.value)}
               className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
               placeholder="Nome do cliente"
+            />
+          </label>
+
+          <label className="space-y-1.5 text-sm font-medium text-slate-700">
+            E-mail do cliente
+            <input
+              required
+              type="email"
+              autoComplete="email"
+              maxLength={254}
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              placeholder="cliente@email.com"
             />
           </label>
 
@@ -240,6 +262,14 @@ export default function WaitlistManager({
           <p role="status" className="mt-4 text-sm text-emerald-700">
             {message}
           </p>
+        )}
+        {credentials && (
+          <div role="status" className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+            <p className="font-semibold">Senha temporária — mostre ao cliente agora</p>
+            <p className="mt-1">E-mail: <span className="font-mono">{credentials.email}</span></p>
+            <p>Senha: <span className="font-mono font-bold">{credentials.password}</span></p>
+            <p className="mt-2 text-xs">Ela só é exibida neste momento. No primeiro acesso, o cliente deverá escolher uma nova senha.</p>
+          </div>
         )}
         {error && (
           <p role="alert" className="mt-4 text-sm text-rose-700">

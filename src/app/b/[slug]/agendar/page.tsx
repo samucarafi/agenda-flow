@@ -5,6 +5,7 @@ import Business from "@/models/Business";
 import Service from "@/models/Service";
 import { BookingForm } from "@/components/public/BookingForm";
 import { PublicBusinessNavigation } from "@/components/navigation/PublicBusinessNavigation";
+import { getBusinessTheme } from "@/lib/business-theme";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -43,6 +44,11 @@ export default async function PublicBookingPage({
 
   const selectedService =
     services.find((item) => item._id.toString() === serviceId) ?? services[0];
+  const theme = getBusinessTheme(business.theme);
+  const surface = `color-mix(in srgb, ${theme.primaryColor} 94%, ${theme.primaryText})`;
+  const border = theme.template === "bold"
+    ? `color-mix(in srgb, ${theme.accentColor} 42%, transparent)`
+    : `color-mix(in srgb, ${theme.primaryText} ${theme.template === "minimal" ? 12 : 16}%, transparent)`;
 
   const user = await getCurrentUser();
 
@@ -63,8 +69,12 @@ export default async function PublicBookingPage({
     slug: business.slug,
     description: business.description || "",
     category: business.category,
-    primaryColor: business.theme?.primaryColor || "#0F172A",
-    accentColor: business.theme?.accentColor || "#06B6D4",
+    primaryColor: theme.primaryColor,
+    accentColor: theme.accentColor,
+    template: theme.template,
+    primaryText: theme.primaryText,
+    accentText: theme.accentText,
+    accentLabelColor: theme.accentLabelColor,
   };
 
   const serializedServices = services.map((item) => ({
@@ -76,17 +86,36 @@ export default async function PublicBookingPage({
   }));
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
+    <main
+      className="business-public-page min-h-screen text-white"
+      data-template={theme.template}
+      style={{
+        background: theme.template === "minimal"
+          ? theme.primaryColor
+          : theme.template === "bold"
+            ? `linear-gradient(135deg, ${theme.primaryColor}, color-mix(in srgb, ${theme.primaryColor} 78%, ${theme.accentColor}))`
+            : `linear-gradient(145deg, ${theme.primaryColor}, color-mix(in srgb, ${theme.primaryColor} 94%, ${theme.accentColor}))`,
+        color: theme.primaryText,
+        "--business-surface": surface,
+        "--business-border": border,
+        "--business-radius": theme.template === "minimal" ? "1rem" : theme.template === "bold" ? "1.5rem" : "1.125rem",
+        "--business-text": theme.primaryText,
+        "--business-control-surface": `color-mix(in srgb, ${theme.primaryColor} 88%, ${theme.primaryText})`,
+      } as React.CSSProperties}
+    >
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
         <PublicBusinessNavigation
           slug={business.slug}
           category={business.category}
           bookingEnabled={business.bookingSettings?.enabled ?? false}
           current="booking"
+          accentColor={theme.accentColor}
+          accentText={theme.accentText}
+          foregroundColor={theme.primaryText}
         />
 
         <header className="mt-8 max-w-2xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-400">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em]" style={{ color: theme.accentLabelColor }}>
             AgendaFlow · Agendamento online
           </p>
           <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
