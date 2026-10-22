@@ -8,6 +8,7 @@ import LeaveQueueButton from "./LeaveQueueButton";
 import mongoose from "mongoose";
 import "@/models/RestaurantTable";
 import { ClientNavigation } from "@/components/navigation/ClientNavigation";
+import { reconcileSeatedEntry } from "@/lib/reconcile-seated-entry";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,9 @@ export default async function ClientQueuePage() {
     .populate("businessId", "name slug")
     .populate("tableId", "name")
     .lean();
+  const reconciledStatuses = await Promise.all(
+    entries.map((entry) => reconcileSeatedEntry(entry)),
+  );
 
   const businessIds = [
     ...new Set(
@@ -74,7 +78,7 @@ export default async function ClientQueuePage() {
     previousBusinessId = currentBusinessId;
   }
 
-  const serializedEntries = entries.map((entry) => {
+  const serializedEntries = entries.map((entry, index) => {
     const business = entry.businessId as unknown as {
       _id: mongoose.Types.ObjectId;
       name: string;
@@ -96,9 +100,9 @@ export default async function ClientQueuePage() {
         positions.get(
           `${business?._id?.toString() ?? ""}:${entry._id.toString()}`,
         ) ?? entry.position,
-      status: entry.status,
+      status: reconciledStatuses[index],
       joinedAt: entry.joinedAt.toISOString(),
-      tableName: table?.name ?? null,
+      tableName: reconciledStatuses[index] === "seated" ? table?.name ?? null : null,
     };
   });
 

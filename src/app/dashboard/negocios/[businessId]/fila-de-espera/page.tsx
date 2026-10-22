@@ -7,6 +7,8 @@ import RestaurantTable from "@/models/RestaurantTable";
 import { recommendWaitlistEntry } from "@/lib/waitlist-rules.mjs";
 import Link from "next/link";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { reconcileSeatedEntry } from "@/lib/reconcile-seated-entry";
+import { PageHeading } from "@/components/dashboard/PageHeading";
 
 type PageProps = {
   params: Promise<{ businessId: string }>;
@@ -36,6 +38,9 @@ export default async function RestaurantWaitlistPage({ params }: PageProps) {
       .limit(50)
       .lean(),
   ]);
+  const finishedStatuses = await Promise.all(
+    finishedDocuments.map((entry) => reconcileSeatedEntry(entry)),
+  );
   const positionByEntryId = new Map(
     activeDocuments.map((entry, index) => [entry._id.toString(), index + 1]),
   );
@@ -75,13 +80,16 @@ export default async function RestaurantWaitlistPage({ params }: PageProps) {
     };
   });
 
-  const entries = [...activeDocuments, ...finishedDocuments].map((entry) => ({
+  const entries = [...activeDocuments, ...finishedDocuments].map((entry, index) => ({
     id: entry._id.toString(),
     customerName: entry.customerName,
     phone: entry.phone ?? "",
     partySize: entry.partySize,
     position: positionByEntryId.get(entry._id.toString()) ?? entry.position,
-    status: entry.status,
+    status:
+      index >= activeDocuments.length
+        ? finishedStatuses[index - activeDocuments.length]
+        : entry.status,
     joinedAt: entry.joinedAt.toISOString(),
     notes: entry.notes ?? "",
   }));
@@ -94,28 +102,21 @@ export default async function RestaurantWaitlistPage({ params }: PageProps) {
       showHeader={false}
     >
       <div className="space-y-8">
-        <header className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-          <p className="text-sm font-medium text-indigo-600">
-            Operação do restaurante
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-            Fila de espera
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
-            Organize a ordem de atendimento, acompanhe os grupos e registre
-            quando forem acomodados.
-          </p>
-          </div>
-          <Link
-            href={`/b/${access.business.slug}`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
-          >
-            Abrir página pública ↗
-          </Link>
-        </header>
+        <PageHeading
+          eyebrow="Operação do restaurante"
+          title="Fila de espera"
+          description="Organize a ordem de atendimento, acompanhe os grupos e registre quando forem acomodados."
+          actions={(
+            <Link
+              href={`/b/${access.business.slug}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 sm:w-auto"
+            >
+              Abrir página pública ↗
+            </Link>
+          )}
+        />
 
         <WaitlistManager
           businessId={businessId}

@@ -7,6 +7,7 @@ export interface IMenuItem {
   description?: string;
   price?: number;
   imageUrl?: string;
+  imagePublicId?: string;
   dietaryTags: string[];
   available: boolean;
   sortOrder: number;
@@ -22,6 +23,7 @@ const menuItemSchema = new Schema<IMenuItem>(
     description: { type: String, trim: true, maxlength: 600, default: "" },
     price: { type: Number, min: 0, max: 999999, default: undefined },
     imageUrl: { type: String, trim: true, maxlength: 2048, default: "" },
+    imagePublicId: { type: String, trim: true, maxlength: 255, default: "" },
     dietaryTags: { type: [String], default: [], validate: (tags: string[]) => tags.length <= 20 && tags.every((tag) => tag.length <= 40) },
     available: { type: Boolean, default: true, index: true },
     sortOrder: { type: Number, min: 0, max: 10000, default: 0 },

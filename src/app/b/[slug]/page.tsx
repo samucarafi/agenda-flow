@@ -9,6 +9,7 @@ import Service from "@/models/Service";
 import MenuCategory from "@/models/MenuCategory";
 import MenuItem from "@/models/MenuItem";
 import { PublicBusinessNavigation } from "@/components/navigation/PublicBusinessNavigation";
+import { getBusinessTheme } from "@/lib/business-theme";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -66,17 +67,7 @@ export default async function PublicBusinessPage({ params }: PageProps) {
     menuItems.some((item) => item.categoryId.toString() === category._id.toString()),
   );
 
-  const primaryColor =
-    typeof business.theme?.primaryColor === "string" &&
-    /^#[0-9a-fA-F]{6}$/.test(business.theme.primaryColor)
-      ? business.theme.primaryColor
-      : "#0F172A";
-
-  const accentColor =
-    typeof business.theme?.accentColor === "string" &&
-    /^#[0-9a-fA-F]{6}$/.test(business.theme.accentColor)
-      ? business.theme.accentColor
-      : "#06B6D4";
+  const { primaryColor, accentColor, primaryText, accentText, accentLabelColor } = getBusinessTheme(business.theme);
 
   const publicAddress = [
     business.address?.street
@@ -115,18 +106,20 @@ export default async function PublicBusinessPage({ params }: PageProps) {
           "--business-primary": primaryColor,
           "--business-accent": accentColor,
           backgroundColor: primaryColor,
+          color: primaryText,
         } as React.CSSProperties
       }
+      data-template={getBusinessTheme(business.theme).template}
     >
-      <header className="border-b border-white/10 bg-white/[0.02]">
+      <header className="border-b border-current/10 bg-current/[0.02]">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <span className="text-xs font-bold tracking-[0.2em]" style={{ color: accentColor }}>AGENDAFLOW</span>
-          <Link href="/cliente" className="text-sm text-slate-300 hover:text-white">Área do cliente</Link>
+          <span className="text-xs font-bold tracking-[0.2em]" style={{ color: accentLabelColor }}>AGENDAFLOW</span>
+          <Link href="/cliente" className="text-sm opacity-80 transition hover:opacity-100">Área do cliente</Link>
         </div>
       </header>
 
       {/* Apresentação do estabelecimento */}
-      <section className="relative overflow-hidden border-b border-white/10">
+      <section className="relative overflow-hidden border-b border-current/10">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 opacity-20"
@@ -136,7 +129,7 @@ export default async function PublicBusinessPage({ params }: PageProps) {
         />
 
         <div className="relative mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-          <p className="text-sm font-semibold" style={{ color: accentColor }}>
+          <p className="text-sm font-semibold" style={{ color: accentLabelColor }}>
             {categoryLabels[business.category] ?? "Estabelecimento"}
           </p>
 
@@ -145,13 +138,13 @@ export default async function PublicBusinessPage({ params }: PageProps) {
           </h1>
 
           {business.description && (
-            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
+            <p className="mt-4 max-w-2xl text-base leading-7 opacity-80">
               {business.description}
             </p>
           )}
 
-          <p className="mt-5 flex items-center gap-2 text-sm text-slate-400">
-            <FiClock aria-hidden="true" style={{ color: accentColor }} />
+          <p className="mt-5 flex items-center gap-2 text-sm opacity-70">
+            <FiClock aria-hidden="true" style={{ color: accentLabelColor }} />
             {business.category === "restaurant" ? "Cardápio e fila de espera" : "Atendimento com horário agendado"}
           </p>
 
@@ -161,14 +154,17 @@ export default async function PublicBusinessPage({ params }: PageProps) {
               category={business.category}
               bookingEnabled={business.bookingSettings?.enabled ?? false}
               current="home"
+              accentColor={accentColor}
+              accentText={accentText}
+              foregroundColor={primaryText}
             />
           </div>
 
           {business.category === "restaurant" && (
             <Link
               href={`/b/${business.slug}/fila`}
-              className="mt-6 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-slate-950 shadow-lg transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-              style={{ backgroundColor: accentColor }}
+              className="mt-6 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold shadow-lg transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+              style={{ backgroundColor: accentColor, color: accentText }}
             >
               Entrar na fila de espera <FiArrowRight aria-hidden="true" />
             </Link>
@@ -179,12 +175,12 @@ export default async function PublicBusinessPage({ params }: PageProps) {
               href={mapsSearchUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 inline-flex max-w-full items-start gap-2 text-sm text-slate-300 underline-offset-4 transition hover:text-white hover:underline"
+              className="mt-4 inline-flex max-w-full items-start gap-2 text-sm opacity-80 underline-offset-4 transition hover:opacity-100 hover:underline"
             >
               <FiMapPin
                 aria-hidden="true"
                 className="mt-0.5 shrink-0"
-                style={{ color: accentColor }}
+                style={{ color: accentLabelColor }}
               />
               <span className="break-words">{publicAddress}</span>
             </a>
@@ -202,7 +198,7 @@ export default async function PublicBusinessPage({ params }: PageProps) {
             <div>
               <p
                 className="text-sm font-semibold tracking-[0.18em]"
-                style={{ color: accentColor }}
+                style={{ color: accentLabelColor }}
               >
                 COMO CHEGAR
               </p>
@@ -214,12 +210,12 @@ export default async function PublicBusinessPage({ params }: PageProps) {
                 Visite nosso espaço
               </h2>
 
-              <p className="mt-4 flex items-start gap-3 text-sm leading-6 text-slate-300">
+              <p className="mt-4 flex items-start gap-3 text-sm leading-6 opacity-80">
                 <FiMapPin
                   aria-hidden="true"
                   size={20}
                   className="mt-0.5 shrink-0"
-                  style={{ color: accentColor }}
+                style={{ color: accentLabelColor }}
                 />
                 <span className="break-words">{publicAddress}</span>
               </p>
@@ -228,21 +224,21 @@ export default async function PublicBusinessPage({ params }: PageProps) {
                 href={mapsSearchUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-5 inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-slate-950 transition hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                style={{ backgroundColor: accentColor }}
+                className="mt-5 inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+                style={{ backgroundColor: accentColor, color: accentText }}
               >
                 <FiMapPin aria-hidden="true" size={17} />
                 Abrir no Google Maps
                 <FiArrowRight aria-hidden="true" size={16} />
               </a>
 
-              <p className="mt-3 text-xs leading-5 text-slate-500">
+              <p className="mt-3 text-xs leading-5 opacity-60">
                 Confira o endereço no Google Maps antes de sair. A localização
                 exibida depende dos dados de endereço cadastrados.
               </p>
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-2xl shadow-black/10">
+            <div className="overflow-hidden rounded-2xl border border-current/10 bg-current/[0.04] shadow-2xl shadow-black/10">
               <iframe
                 title={`Mapa de localização de ${business.name}`}
                 src={mapsEmbedUrl}
@@ -262,7 +258,7 @@ export default async function PublicBusinessPage({ params }: PageProps) {
           <div className="mb-6">
             <p
               className="text-sm font-semibold tracking-[0.18em]"
-              style={{ color: accentColor }}
+              style={{ color: accentLabelColor }}
             >
               CONHEÇA NOSSO ESPAÇO
             </p>
@@ -276,7 +272,7 @@ export default async function PublicBusinessPage({ params }: PageProps) {
             {business.gallery.map((image) => (
               <figure
                 key={image.publicId}
-                className={`overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] ${
+                className={`overflow-hidden rounded-2xl border border-current/10 bg-current/[0.04] ${
                   image.isCover ? "col-span-2 row-span-2" : ""
                 }`}
               >
@@ -297,14 +293,14 @@ export default async function PublicBusinessPage({ params }: PageProps) {
       {business.category === "restaurant" ? (
       <section id="cardapio" className="mx-auto max-w-6xl scroll-mt-8 px-4 py-10 sm:px-6 sm:py-14">
         <div className="mb-7">
-          <p className="text-sm font-semibold tracking-[0.18em]" style={{ color: accentColor }}>CARDÁPIO</p>
+              <p className="text-sm font-semibold tracking-[0.18em]" style={{ color: accentLabelColor }}>CARDÁPIO</p>
           <h2 className="mt-2 text-2xl font-bold sm:text-3xl">Menu digital</h2>
-          <p className="mt-2 text-sm text-slate-400">Confira os itens disponíveis antes de visitar o restaurante.</p>
+          <p className="mt-2 text-sm opacity-70">Confira os itens disponíveis antes de visitar o restaurante.</p>
         </div>
         {categoriesWithItems.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center">
+          <div className="rounded-2xl border border-current/10 bg-current/[0.04] p-8 text-center">
             <h3 className="font-semibold">Cardápio em preparação</h3>
-            <p className="mt-2 text-sm text-slate-400">O restaurante ainda não publicou itens do menu.</p>
+            <p className="mt-2 text-sm opacity-70">O restaurante ainda não publicou itens do menu.</p>
           </div>
         ) : (
           <div className="space-y-8">
@@ -315,19 +311,32 @@ export default async function PublicBusinessPage({ params }: PageProps) {
                 <section key={category._id.toString()} aria-labelledby={`menu-${category._id.toString()}`}>
                   <div className="mb-3">
                     <h3 id={`menu-${category._id.toString()}`} className="text-xl font-semibold">{category.name}</h3>
-                    {category.description && <p className="mt-1 text-sm text-slate-400">{category.description}</p>}
+                    {category.description && <p className="mt-1 text-sm opacity-70">{category.description}</p>}
                   </div>
                   <div className="grid gap-3 md:grid-cols-2">
                     {items.map((item) => (
-                      <article key={item._id.toString()} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                      <article key={item._id.toString()} className="overflow-hidden rounded-2xl border border-current/10 bg-current/[0.04]">
+                        {item.imageUrl && (
+                          <div className="relative aspect-[16/9] w-full bg-current/5">
+                            <Image
+                              src={item.imageUrl}
+                              alt={item.name}
+                              fill
+                              sizes="(max-width: 768px) 100vw, 50vw"
+                              className="object-cover"
+                            />
+                          </div>
+                        )}
+                        <div className="p-5">
                         <div className="flex items-start justify-between gap-4">
                           <div>
                             <h4 className="font-semibold">{item.name}</h4>
-                            {item.description && <p className="mt-2 text-sm leading-6 text-slate-400">{item.description}</p>}
+                            {item.description && <p className="mt-2 text-sm leading-6 opacity-70">{item.description}</p>}
                           </div>
-                          <span className="shrink-0 text-sm font-semibold" style={{ color: accentColor }}>
+                          <span className="shrink-0 text-sm font-semibold" style={{ color: accentLabelColor }}>
                             {typeof item.price === "number" ? currency.format(item.price) : "Consulte"}
                           </span>
+                        </div>
                         </div>
                       </article>
                     ))}
@@ -341,9 +350,9 @@ export default async function PublicBusinessPage({ params }: PageProps) {
       ) : (
       <section id="servicos" className="mx-auto max-w-6xl scroll-mt-8 px-4 py-10 sm:px-6 sm:py-14">
         <div className="mb-7">
-          <p
+              <p
             className="text-sm font-semibold tracking-[0.18em]"
-            style={{ color: accentColor }}
+                style={{ color: accentLabelColor }}
           >
             NOSSOS SERVIÇOS
           </p>
@@ -352,15 +361,15 @@ export default async function PublicBusinessPage({ params }: PageProps) {
             Escolha seu serviço
           </h2>
 
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="mt-2 text-sm opacity-70">
             Confira as opções, a duração e o preço antes de continuar.
           </p>
         </div>
         {services.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center">
+          <div className="rounded-2xl border border-current/10 bg-current/[0.04] p-8 text-center">
             <h3 className="font-semibold">Nenhum serviço disponível ainda</h3>
 
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 text-sm opacity-70">
               Este estabelecimento ainda não publicou seus serviços.
             </p>
           </div>
@@ -369,35 +378,35 @@ export default async function PublicBusinessPage({ params }: PageProps) {
             {services.map((service) => (
               <article
                 key={service._id.toString()}
-                className="flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.05]"
+                className="flex flex-col rounded-2xl border border-current/10 bg-current/[0.04] p-5 transition duration-200 hover:-translate-y-0.5 hover:border-current/20 hover:bg-current/[0.07]"
               >
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold">{service.name}</h3>
 
                   {service.description && (
-                    <p className="mt-2 text-sm leading-6 text-slate-400">
+                    <p className="mt-2 text-sm leading-6 opacity-70">
                       {service.description}
                     </p>
                   )}
 
-                  <p className="mt-4 flex items-center gap-2 text-sm text-slate-400">
+                  <p className="mt-4 flex items-center gap-2 text-sm opacity-70">
                     <FiClock
                       aria-hidden="true"
-                      style={{ color: accentColor }}
+                      style={{ color: accentLabelColor }}
                     />
                     {service.duration} minutos
                   </p>
                 </div>
 
-                <div className="mt-5 flex items-center justify-between gap-3 border-t border-white/10 pt-4">
+                <div className="mt-5 flex items-center justify-between gap-3 border-t border-current/10 pt-4">
                   <span className="text-lg font-bold">
                     {currency.format(service.price)}
                   </span>
 
                   <Link
                     href={`/b/${business.slug}/agendar?service=${service._id.toString()}`}
-                    className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                    style={{ backgroundColor: accentColor }}
+                    className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+                    style={{ backgroundColor: accentColor, color: accentText }}
                   >
                     Agendar
                     <FiArrowRight aria-hidden="true" />
@@ -410,7 +419,7 @@ export default async function PublicBusinessPage({ params }: PageProps) {
       </section>
       )}
 
-      <footer className="border-t border-white/10 px-4 py-6 text-center text-xs text-slate-500">
+      <footer className="border-t border-current/10 px-4 py-6 text-center text-xs opacity-60">
         Agendamentos organizados com AgendaFlow.
       </footer>
     </main>

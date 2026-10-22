@@ -26,24 +26,24 @@ export function DashboardLayout({
   const user = useAuth();
 
   return (
-    <div className="min-h-screen bg-[#0B1120] text-slate-100 lg:flex">
+    <div className="min-h-screen bg-slate-50 text-slate-900 lg:flex">
       <Sidebar user={user} businessCategory={businessCategory} />
 
-      <main className="min-w-0 flex-1">
+      <main className="min-w-0 flex-1 bg-slate-50 text-slate-900">
         {showHeader && (
-          <header className="sticky top-0 z-30 border-b border-white/10 bg-[#0B1120]/95 backdrop-blur-xl">
+          <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 text-slate-900 backdrop-blur-xl">
             <div className="flex min-h-16 items-center gap-3 px-5 py-3 pl-16 lg:px-8 lg:pl-8">
               {backHref && (
                 <BackButton fallbackHref={backHref} label={backLabel} />
               )}
 
               <div className="min-w-0">
-                <h1 className="truncate text-sm font-semibold text-slate-100">
+                <h1 className="truncate text-sm font-semibold text-slate-900">
                   {title}
                 </h1>
 
                 {description && (
-                  <p className="mt-0.5 truncate text-xs text-slate-400">
+                  <p className="mt-0.5 truncate text-xs text-slate-500">
                     {description}
                   </p>
                 )}
@@ -52,7 +52,7 @@ export function DashboardLayout({
           </header>
         )}
 
-        <div className="mx-auto min-h-[calc(100vh-4rem)] w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <div className={`mx-auto min-h-[calc(100vh-4rem)] w-full max-w-7xl px-4 sm:px-6 lg:px-8 ${showHeader ? "py-6 lg:py-8" : "pb-6 pt-16 lg:py-8"}`}>
           {children}
         </div>
       </main>

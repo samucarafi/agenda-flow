@@ -5,6 +5,7 @@ import RestaurantTable from "@/models/RestaurantTable";
 import WaitlistEntry from "@/models/WaitlistEntry";
 import TableManager from "./TableManager";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { PageHeading } from "@/components/dashboard/PageHeading";
 
 type PageProps = {
   params: Promise<{ businessId: string }>;
@@ -97,20 +98,11 @@ export default async function RestaurantTablesPage({ params }: PageProps) {
       showHeader={false}
     >
       <div className="space-y-8">
-        <header className="mb-8">
-          <p className="text-sm font-medium text-indigo-600">
-            Operação do restaurante
-          </p>
-
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-            Gerenciamento de mesas
-          </h1>
-
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
-            Organize a capacidade do salão e acompanhe a disponibilidade das
-            mesas em um só lugar.
-          </p>
-        </header>
+        <PageHeading
+          eyebrow="Operação do restaurante"
+          title="Gerenciamento de mesas"
+          description="Organize a capacidade do salão e acompanhe a disponibilidade das mesas em um só lugar."
+        />
 
         <TableManager
           businessId={businessId}

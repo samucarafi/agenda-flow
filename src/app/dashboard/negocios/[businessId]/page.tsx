@@ -309,20 +309,21 @@ export default async function ManageBusinessPage({
                 Fuso horário: {business.timezone || "Não configurado"}
               </div>
 
-              <p className="mt-2 text-xs text-slate-500">
-                Reservas públicas:{" "}
-                {business.bookingSettings?.enabled ? "Ativadas" : "Desativadas"}
-              </p>
+              {business.category !== "restaurant" && (
+                <p className="mt-2 text-xs text-slate-500">
+                  Reservas públicas:{" "}
+                  {business.bookingSettings?.enabled ? "Ativadas" : "Desativadas"}
+                </p>
+              )}
 
-              {business.status === "active" &&
-              business.bookingSettings?.enabled ? (
+              {business.status === "active" ? (
                 <Link
                   href={`/b/${business.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-400 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                 >
-                  Abrir página pública
+                  Visualizar página pública
                   <FiArrowUpRight size={16} />
                 </Link>
               ) : (
@@ -336,7 +337,17 @@ export default async function ManageBusinessPage({
               )}
 
               {business.status === "active" &&
-                business.bookingSettings?.enabled && (
+                (business.category === "restaurant" ? (
+                  <Link
+                    href={`/b/${business.slug}/fila`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-3 text-sm font-medium text-slate-300 transition hover:bg-white/[0.05] hover:text-white"
+                  >
+                    Visualizar fila de espera
+                    <FiClock size={16} />
+                  </Link>
+                ) : business.bookingSettings?.enabled ? (
                   <Link
                     href={`/b/${business.slug}/agendar?preview=1`}
                     className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-3 text-sm font-medium text-slate-300 transition hover:bg-white/[0.05] hover:text-white"
@@ -344,7 +355,7 @@ export default async function ManageBusinessPage({
                     Pré-visualizar agendamento
                     <FiCalendar size={16} />
                   </Link>
-                )}
+                ) : null)}
             </div>
           </section>
           <section className="mt-6 rounded-2xl border border-red-400/20 bg-red-400/[0.03] p-5 sm:p-6">

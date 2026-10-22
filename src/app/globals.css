@@ -7,6 +7,11 @@
   --border: #e7e9ee;
   --primary: #635bff;
   --primary-dark: #5148e8;
+  --surface: #ffffff;
+  --surface-muted: #f8fafc;
+  --text-primary: #111827;
+  --text-secondary: #475569;
+  --focus-ring: #4f46e5;
 }
 
 * {
@@ -37,6 +42,26 @@ a {
 
 button {
   font: inherit;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 a {

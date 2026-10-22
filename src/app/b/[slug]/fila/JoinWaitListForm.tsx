@@ -7,9 +7,13 @@ import { joinRestaurantWaitlistAsClient } from "@/actions/restaurant-waitlist";
 export default function JoinWaitlistForm({
   businessId,
   businessName,
+  accentColor,
+  accentText,
 }: {
   businessId: string;
   businessName: string;
+  accentColor: string;
+  accentText: string;
 }) {
   const router = useRouter();
   const [partySize, setPartySize] = useState("2");
@@ -19,6 +23,7 @@ export default function JoinWaitlistForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (pending) return;
     setPending(true);
     setError("");
 
@@ -43,48 +48,53 @@ export default function JoinWaitlistForm({
   }
 
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-      <div className="flex size-12 items-center justify-center rounded-2xl bg-indigo-50 text-2xl">
+    <section className="rounded-3xl border border-current/15 p-6 shadow-sm sm:p-8" style={{ backgroundColor: "color-mix(in srgb, var(--business-primary) 86%, white)" }}>
+      <div className="flex size-12 items-center justify-center rounded-2xl text-2xl" style={{ backgroundColor: `${accentColor}22` }}>
         🍽️
       </div>
 
-      <h2 className="mt-5 text-2xl font-bold tracking-tight text-slate-950">
-        Entre na fila
+      <h2 className="mt-5 text-2xl font-bold tracking-tight">
+        Entrar na fila de espera
       </h2>
 
-      <p className="mt-2 text-sm leading-6 text-slate-600">
-        Você entrará na fila de espera de {businessName}. Acompanhe sua posição
-        pela sua conta no AgendaFlow.
+      <p className="mt-2 text-sm leading-6 opacity-75">
+        Informe o tamanho do grupo para entrar na fila de espera de {businessName}. Você poderá acompanhar a chamada nesta página e na sua conta.
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-        <label className="block space-y-2 text-sm font-medium text-slate-700">
+      <form onSubmit={handleSubmit} className="mt-6 space-y-5" aria-busy={pending}>
+        <label htmlFor="waitlist-party-size" className="block space-y-2 text-sm font-medium">
           Quantas pessoas estão no grupo?
           <input
+            id="waitlist-party-size"
             type="number"
             min={1}
             max={40}
             required
+            disabled={pending}
             value={partySize}
             onChange={(event) => setPartySize(event.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            className="w-full rounded-xl border border-current/20 bg-white/5 px-4 py-3 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60"
+            style={{ color: "inherit", "--tw-ring-color": accentColor } as React.CSSProperties}
           />
         </label>
 
-        <label className="block space-y-2 text-sm font-medium text-slate-700">
+        <label htmlFor="waitlist-notes" className="block space-y-2 text-sm font-medium">
           Observações (opcional)
           <textarea
+            id="waitlist-notes"
             maxLength={300}
             rows={3}
+            disabled={pending}
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             placeholder="Alguma informação para a equipe?"
-            className="w-full resize-y rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            className="w-full resize-y rounded-xl border border-current/20 bg-white/5 px-4 py-3 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60"
+            style={{ color: "inherit", "--tw-ring-color": accentColor } as React.CSSProperties}
           />
         </label>
 
         {error && (
-          <p role="alert" className="text-sm text-rose-700">
+          <p id="waitlist-error" role="alert" aria-live="assertive" className="rounded-xl border border-rose-300/40 bg-rose-500/10 px-4 py-3 text-sm">
             {error}
           </p>
         )}
@@ -92,10 +102,12 @@ export default function JoinWaitlistForm({
         <button
           type="submit"
           disabled={pending}
-          className="w-full rounded-xl bg-indigo-600 px-5 py-3 font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-xl px-5 py-3 font-semibold transition hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          style={{ backgroundColor: accentColor, color: accentText, "--tw-ring-color": accentColor } as React.CSSProperties}
         >
-          {pending ? "Entrando na fila..." : "Entrar na fila"}
+          {pending ? "Entrando na fila…" : "Entrar na fila de espera"}
         </button>
+        <p className="sr-only" role="status" aria-live="polite">{pending ? "Enviando sua solicitação para entrar na fila." : ""}</p>
       </form>
     </section>
   );

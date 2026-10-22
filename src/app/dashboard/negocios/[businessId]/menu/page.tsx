@@ -5,6 +5,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import MenuCategory from "@/models/MenuCategory";
 import MenuItem from "@/models/MenuItem";
 import MenuManager from "./MenuManager";
+import { PageHeading } from "@/components/dashboard/PageHeading";
 
 export default async function RestaurantMenuPage({
   params,
@@ -32,23 +33,21 @@ export default async function RestaurantMenuPage({
       showHeader={false}
     >
       <div className="space-y-8">
-        <header className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-indigo-600">OPERAÇÃO DO RESTAURANTE</p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Menu digital</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-              Organize categorias e itens. Somente itens marcados como disponíveis aparecem aos clientes.
-            </p>
-          </div>
-          <a
-            href={`/b/${access.business.slug}#cardapio`}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-          >
-            Ver menu público ↗
-          </a>
-        </header>
+        <PageHeading
+          eyebrow="Operação do restaurante"
+          title="Menu digital"
+          description="Organize categorias e itens. Somente itens marcados como disponíveis aparecem aos clientes."
+          actions={(
+            <a
+              href={`/b/${access.business.slug}#cardapio`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 sm:w-auto"
+            >
+              Ver menu público ↗
+            </a>
+          )}
+        />
         <MenuManager
           businessId={businessId}
           initialCategories={categories.map((category) => ({
@@ -61,6 +60,7 @@ export default async function RestaurantMenuPage({
             categoryId: item.categoryId.toString(),
             name: item.name,
             description: item.description ?? "",
+            imageUrl: item.imageUrl ?? "",
             price: item.price ?? null,
             available: item.available,
           }))}

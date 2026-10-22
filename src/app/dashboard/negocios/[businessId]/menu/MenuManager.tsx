@@ -1,11 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useState, type FormEvent } from "react";
 import {
   createRestaurantMenuCategory,
   createRestaurantMenuItem,
   setRestaurantMenuItemAvailability,
+  updateRestaurantMenuItemImage,
 } from "@/actions/restaurant-menu";
 
 type Category = { id: string; name: string; description: string };
@@ -14,6 +16,7 @@ type Item = {
   categoryId: string;
   name: string;
   description: string;
+  imageUrl: string;
   price: number | null;
   available: boolean;
 };
@@ -80,6 +83,30 @@ export default function MenuManager({
     }
   }
 
+  async function updatePhoto(item: Item, file?: File) {
+    if (!file) return;
+    setPending(true);
+    setError("");
+    setMessage("");
+    const data = new FormData();
+    data.set("businessId", businessId);
+    data.set("itemId", item.id);
+    data.set("image", file);
+    try {
+      const result = await updateRestaurantMenuItemImage(data);
+      if (!result.success) {
+        setError(result.error ?? "Não foi possível atualizar a foto.");
+      } else {
+        setMessage(`Foto de ${item.name} atualizada.`);
+        router.refresh();
+      }
+    } catch {
+      setError("O envio da foto falhou. Tente novamente.");
+    } finally {
+      setPending(false);
+    }
+  }
+
   const money = (value: number | null) => value === null
     ? "Preço sob consulta"
     : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -131,6 +158,17 @@ export default function MenuManager({
             Descrição (opcional)
             <textarea name="description" maxLength={600} rows={2} className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5" />
           </label>
+          <label className="mt-3 block text-sm font-medium text-slate-700">
+            Foto do item (opcional)
+            <input
+              name="image"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/avif"
+              disabled={pending}
+              className="mt-1.5 block w-full cursor-pointer rounded-xl border border-slate-300 bg-white text-sm text-slate-700 file:mr-4 file:border-0 file:bg-slate-100 file:px-4 file:py-2.5 file:font-semibold file:text-slate-700 hover:file:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+            />
+            <span className="mt-1 block text-xs font-normal text-slate-500">JPG, PNG, WebP ou AVIF · até 5 MB</span>
+          </label>
           <button disabled={pending || !initialCategories.length} className="mt-4 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">Adicionar ao menu</button>
           {!initialCategories.length && <p className="mt-2 text-xs text-amber-700">Crie uma categoria antes de adicionar itens.</p>}
         </form>
@@ -155,15 +193,35 @@ export default function MenuManager({
                 {category.description && <p className="mt-1 text-sm text-slate-500">{category.description}</p>}
               </div>
               {categoryItems.length ? categoryItems.map((item) => (
-                <article key={item.id} className="flex flex-col gap-3 border-b border-slate-100 p-5 last:border-0 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
+                <article key={item.id} className="flex flex-col gap-4 border-b border-slate-100 p-5 last:border-0 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 items-center gap-4">
+                    {item.imageUrl ? (
+                      <Image src={item.imageUrl} alt={item.name} width={88} height={88} className="size-20 shrink-0 rounded-xl object-cover" />
+                    ) : (
+                      <div aria-hidden="true" className="flex size-20 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs text-slate-400">Sem foto</div>
+                    )}
+                    <div className="min-w-0">
                     <h4 className="font-medium text-slate-900">{item.name}</h4>
                     {item.description && <p className="mt-1 text-sm text-slate-500">{item.description}</p>}
                     <p className="mt-2 text-sm font-semibold text-slate-800">{money(item.price)}</p>
+                    </div>
                   </div>
                   <button type="button" disabled={pending} onClick={() => void toggleAvailability(item)} className={`rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-50 ${item.available ? "bg-emerald-50 text-emerald-800 hover:bg-emerald-100" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
                     {item.available ? "Disponível · ocultar" : "Oculto · publicar"}
                   </button>
+                  <label className={`inline-flex cursor-pointer items-center justify-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-within:ring-2 focus-within:ring-indigo-500 ${pending ? "pointer-events-none opacity-50" : ""}`}>
+                    {item.imageUrl ? "Trocar foto" : "Adicionar foto"}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/avif"
+                      disabled={pending}
+                      className="sr-only"
+                      onChange={(event) => {
+                        void updatePhoto(item, event.target.files?.[0]);
+                        event.target.value = "";
+                      }}
+                    />
+                  </label>
                 </article>
               )) : <p className="p-5 text-sm text-slate-500">Ainda não há itens nesta categoria.</p>}
             </section>
