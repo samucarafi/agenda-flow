@@ -4,6 +4,7 @@ export const WAITLIST_STATUSES = [
   "waiting",
   "called",
   "seated",
+  "completed",
   "cancelled",
   "no_show",
 ] as const;
@@ -12,6 +13,7 @@ export type WaitlistStatus = (typeof WAITLIST_STATUSES)[number];
 
 export interface IWaitlistEntry {
   userId?: mongoose.Types.ObjectId;
+  activeUserKey?: string;
   businessId: mongoose.Types.ObjectId;
   customerName: string;
   phone?: string;
@@ -23,6 +25,7 @@ export interface IWaitlistEntry {
   joinedAt: Date;
   calledAt?: Date;
   seatedAt?: Date;
+  completedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,6 +38,7 @@ const waitlistEntrySchema = new Schema<IWaitlistEntry>(
       default: undefined,
       index: true,
     },
+    activeUserKey: { type: String, default: undefined, select: false },
     businessId: {
       type: Schema.Types.ObjectId,
       ref: "Business",
@@ -73,11 +77,19 @@ const waitlistEntrySchema = new Schema<IWaitlistEntry>(
     joinedAt: { type: Date, default: Date.now, required: true, index: true },
     calledAt: { type: Date, default: undefined },
     seatedAt: { type: Date, default: undefined },
+    completedAt: { type: Date, default: undefined },
   },
   { timestamps: true },
 );
 
 waitlistEntrySchema.index({ businessId: 1, status: 1, joinedAt: 1 });
+waitlistEntrySchema.index(
+  { businessId: 1, activeUserKey: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { activeUserKey: { $type: "string" } },
+  },
+);
 
 const WaitlistEntry =
   (models.WaitlistEntry as Model<IWaitlistEntry> | undefined) ??

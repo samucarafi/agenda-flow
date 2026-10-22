@@ -5,7 +5,9 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   FiBriefcase,
+  FiBookOpen,
   FiCalendar,
+  FiClock,
   FiGrid,
   FiMenu,
   FiScissors,
@@ -21,6 +23,7 @@ interface SidebarProps {
     name: string;
     email: string;
   };
+  businessCategory?: string;
 }
 
 interface NavigationItem {
@@ -29,7 +32,7 @@ interface NavigationItem {
   icon: typeof FiGrid;
 }
 
-export function Sidebar({ user }: SidebarProps) {
+export function Sidebar({ user, businessCategory }: SidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -39,7 +42,15 @@ export function Sidebar({ user }: SidebarProps) {
   const businessId = businessMatch?.[1];
 
   const navigation: NavigationItem[] = businessId
-    ? [
+    ? businessCategory === "restaurant"
+      ? [
+          { label: "Visão geral", href: `/dashboard/negocios/${businessId}`, icon: FiGrid },
+          { label: "Fila de espera", href: `/dashboard/negocios/${businessId}/fila-de-espera`, icon: FiClock },
+          { label: "Mesas", href: `/dashboard/negocios/${businessId}/mesas`, icon: FiGrid },
+          { label: "Menu digital", href: `/dashboard/negocios/${businessId}/menu`, icon: FiBookOpen },
+          { label: "Configurações", href: `/dashboard/negocios/${businessId}/configuracoes`, icon: FiSettings },
+        ]
+      : [
         {
           label: "Visão geral",
           href: `/dashboard/negocios/${businessId}`,
@@ -132,9 +143,12 @@ export function Sidebar({ user }: SidebarProps) {
           <nav className="space-y-1">
             {navigation.map((item) => {
               const Icon = item.icon;
+              const isBusinessOverview =
+                businessId && item.href === `/dashboard/negocios/${businessId}`;
               const active =
                 pathname === item.href ||
-                (item.href !== "/dashboard" &&
+                (!isBusinessOverview &&
+                  item.href !== "/dashboard" &&
                   item.href !== "/dashboard/negocios" &&
                   pathname.startsWith(`${item.href}/`));
 

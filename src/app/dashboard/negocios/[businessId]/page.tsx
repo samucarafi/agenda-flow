@@ -10,6 +10,7 @@ import {
   FiArrowUpRight,
   FiGlobe,
   FiClock,
+  FiBookOpen,
 } from "react-icons/fi";
 import mongoose from "mongoose";
 import { DeleteBusinessButton } from "@/components/dashboard/businesses/DeleteBusinessButton";
@@ -76,20 +77,12 @@ export default async function ManageBusinessPage({
             label: "Abrir fila",
           },
           {
-            title: "Reservas",
-            description:
-              "Organize reservas por horário, mesa e quantidade de pessoas.",
-            href: `${basePath}/reservas`,
-            icon: FiCalendar,
-            label: "Gerenciar reservas",
-          },
-          {
             title: "Menu digital",
             description:
-              "Cadastre categorias, pratos, preços e disponibilidade.",
+              "Publique categorias e itens do cardápio para seus clientes.",
             href: `${basePath}/menu`,
-            icon: FiBriefcase,
-            label: "Gerenciar menu",
+            icon: FiBookOpen,
+            label: "Editar menu digital",
           },
           {
             title: "Configurações",
@@ -139,6 +132,7 @@ export default async function ManageBusinessPage({
     <DashboardLayout
       title="Gestão do negócio"
       description={business.name}
+      businessCategory={business.category}
       backHref="/dashboard/negocios"
       backLabel="Meus negócios"
       showHeader={false}

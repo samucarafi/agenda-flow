@@ -13,6 +13,9 @@ export interface IRestaurantTable {
   name: string;
   capacity: number;
   status: RestaurantTableStatus;
+  occupiedEntryId?: mongoose.Types.ObjectId;
+  occupiedAt?: Date;
+  releasedAt?: Date;
   active: boolean;
   notes?: string;
   createdAt: Date;
@@ -25,6 +28,9 @@ const restaurantTableSchema = new Schema<IRestaurantTable>(
     name: { type: String, required: true, trim: true, minlength: 1, maxlength: 40 },
     capacity: { type: Number, required: true, min: 1, max: 40, validate: Number.isInteger },
     status: { type: String, enum: RESTAURANT_TABLE_STATUSES, default: "available", required: true },
+    occupiedEntryId: { type: Schema.Types.ObjectId, ref: "WaitlistEntry", default: undefined },
+    occupiedAt: { type: Date, default: undefined },
+    releasedAt: { type: Date, default: undefined },
     active: { type: Boolean, default: true, index: true },
     notes: { type: String, trim: true, maxlength: 300, default: "" },
   },

@@ -89,6 +89,7 @@ export default async function BusinessSettingsPage({
     <DashboardLayout
       title="Configurações"
       description={business.name}
+      businessCategory={business.category}
       backHref={`/dashboard/negocios/${businessId}`}
       backLabel="Voltar ao negócio"
       showHeader={false}

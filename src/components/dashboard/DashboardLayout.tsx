@@ -11,6 +11,7 @@ interface DashboardLayoutProps {
   backHref?: string;
   backLabel?: string;
   showHeader?: boolean;
+  businessCategory?: string;
 }
 
 export function DashboardLayout({
@@ -20,12 +21,13 @@ export function DashboardLayout({
   backHref,
   backLabel = "Voltar",
   showHeader = true,
+  businessCategory,
 }: DashboardLayoutProps) {
   const user = useAuth();
 
   return (
     <div className="min-h-screen bg-[#0B1120] text-slate-100 lg:flex">
-      <Sidebar user={user} />
+      <Sidebar user={user} businessCategory={businessCategory} />
 
       <main className="min-w-0 flex-1">
         {showHeader && (

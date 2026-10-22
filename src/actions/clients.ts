@@ -10,6 +10,7 @@ import Client from "@/models/Client";
 export interface CreateClientState {
   success: boolean;
   error?: string;
+  alreadyExists?: boolean;
   client?: {
     _id: string;
     name: string;
@@ -66,12 +67,27 @@ export async function createClient(
     const existingClient = await Client.findOne({
       businessId,
       email: normalizedEmail,
-    }).select("_id");
+    });
 
     if (existingClient) {
+      if (!existingClient.active) {
+        existingClient.active = true;
+        existingClient.name = parsed.data.name;
+        existingClient.phone = parsed.data.phone;
+        await existingClient.save();
+      }
+      revalidatePath(`/dashboard/negocios/${businessId}/clientes`);
       return {
-        success: false,
-        error: "Já existe um cliente com esse e-mail neste negócio.",
+        success: true,
+        alreadyExists: true,
+        client: {
+          _id: existingClient._id.toString(),
+          name: existingClient.name,
+          email: existingClient.email,
+          phone: existingClient.phone,
+          active: existingClient.active,
+          createdAt: existingClient.createdAt.toISOString(),
+        },
       };
     }
 
@@ -95,7 +111,24 @@ export async function createClient(
         createdAt: client.createdAt.toISOString(),
       },
     };
-  } catch {
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === 11000) {
+      const existingClient = await Client.findOne({ businessId, email: normalizedEmail }).lean();
+      if (existingClient) {
+        return {
+          success: true,
+          alreadyExists: true,
+          client: {
+            _id: existingClient._id.toString(),
+            name: existingClient.name,
+            email: existingClient.email,
+            phone: existingClient.phone,
+            active: existingClient.active,
+            createdAt: existingClient.createdAt.toISOString(),
+          },
+        };
+      }
+    }
     return {
       success: false,
       error: "Não foi possível cadastrar o cliente. Tente novamente.",

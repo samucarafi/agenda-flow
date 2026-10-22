@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AgendaFlow
 
-## Getting Started
+Aplicação de agendamento e gestão de negócios com Next.js App Router, React, TypeScript, Tailwind CSS, MongoDB e Mongoose.
 
-First, run the development server:
+## Desenvolvimento local
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. Instale as dependências com `npm install`.
+2. Crie `.env.local` na raiz com as variáveis necessárias:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+   ```env
+   MONGODB_URI=mongodb+srv://...
+   AUTH_SECRET=gere-um-segredo-aleatorio-com-pelo-menos-32-caracteres
+   NEXT_PUBLIC_APP_URL=http://localhost:3000
+   CLOUDINARY_CLOUD_NAME=
+   CLOUDINARY_API_KEY=
+   CLOUDINARY_API_SECRET=
+   ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+   Cloudinary é necessário para recursos de imagem. Mantenha segredos fora do Git e configure os valores equivalentes no ambiente de implantação.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. Inicie com `npm run dev` e abra `http://localhost:3000`.
 
-## Learn More
+## Verificações
 
-To learn more about Next.js, take a look at the following resources:
+- TypeScript: `npx tsc --noEmit`
+- ESLint: `npm run lint`
+- Regras da fila: `npm test`
+- Build de produção: `npm run build`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Os testes unitários usam o executor nativo `node:test`, sem dependência adicional. Valide também os fluxos abaixo em um ambiente de desenvolvimento ligado a um banco de teste antes de publicar.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Operação de restaurantes
 
-## Deploy on Vercel
+- Cadastre mesas com capacidade e mantenha sua disponibilidade atualizada.
+- Adicione grupos manualmente ou permita que clientes autenticados entrem pela página pública.
+- Chame grupos e acomode-os selecionando uma mesa compatível. A recomendação destaca o grupo ativo mais antigo que cabe na mesa; a equipe confirma cada atendimento.
+- Quando o grupo sair, use **Confirmar desocupação** na tela Mesas. O sistema não libera mesas com base em tempo.
+- A mesa só pode ser liberada se a associação com a entrada acomodada estiver consistente. Mesas de versões anteriores são associadas automaticamente quando existe exatamente uma entrada acomodada correspondente.
+- Os estados finais da fila permanecem no histórico. A posição exibida para grupos ativos deriva da ordem de entrada, sem depender de reindexações concorrentes.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Roteiro manual
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Um cliente entra na fila e aparece no painel do restaurante.
+2. A equipe chama o cliente e ele vê a atualização na página pública.
+3. A equipe seleciona uma mesa compatível e confirma a acomodação.
+4. A mesa mostra o grupo e passa a ocupada; uma segunda tentativa de ocupá-la deve falhar.
+5. A equipe confirma a desocupação; a mesa volta a disponível e a entrada permanece no histórico.
+6. A fila recomenda o grupo mais antigo que cabe na mesa liberada, sem acomodá-lo automaticamente.
+7. Um cliente não consegue cancelar nem alterar a entrada de outra conta.
+8. Uma conta de cliente não consegue criar duas entradas ativas simultâneas no mesmo restaurante.
+9. Entradas maiores que a capacidade permanecem na fila sem serem reordenadas ou canceladas.
+10. Repita atualização com a página aberta em duas sessões e recarregue para conferir a persistência.
+
+## Banco de dados e implantação
+
+O MongoDB configurado em `MONGODB_URI` precisa estar acessível pelo servidor Next.js. Ocupação e liberação usam uma sequência recuperável com filtros condicionais atômicos, pois alteram dois documentos e não dependem de transações multidocumento: uma referência de ocupação impede que outra solicitação tome a mesa; falhas comuns compensam a reserva; se o processo for interrompido, a equipe confirma a desocupação para reconciliar a entrada e liberar a mesa. Em uma implantação, garanta que os índices definidos nos schemas Mongoose sejam criados, especialmente o índice único parcial de `WaitlistEntry` para impedir entradas ativas duplicadas do mesmo cliente. Em ambientes que desativam `autoIndex`, aplique os índices por uma migração controlada antes de liberar o código.
+
+Antes do deploy:
+
+1. Configure `MONGODB_URI`, `AUTH_SECRET` e as variáveis Cloudinary no provedor.
+2. Confirme o domínio em `NEXT_PUBLIC_APP_URL` e use HTTPS em produção.
+3. Execute TypeScript, lint e build.
+4. Faça o roteiro operacional acima com contas e dados de teste.
+5. Publique primeiro em staging e verifique logs e índices do MongoDB.
+
+Não compartilhe arquivos `.env.local`, credenciais ou dados reais nos logs.

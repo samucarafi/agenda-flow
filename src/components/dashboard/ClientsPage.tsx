@@ -27,6 +27,7 @@ export function ClientsPage({
   const [clients, setClients] = useState<ClientData[]>(initialClients);
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [notice, setNotice] = useState("");
 
   const filteredClients = useMemo(() => {
     const term = search.toLowerCase().trim();
@@ -43,8 +44,16 @@ export function ClientsPage({
     );
   }, [clients, search]);
 
-  function handleClientCreated(client: ClientData) {
-    setClients((currentClients) => [client, ...currentClients]);
+  function handleClientCreated(client: ClientData, alreadyExists = false) {
+    setClients((currentClients) => [
+      client,
+      ...currentClients.filter((current) => current._id !== client._id),
+    ]);
+    setNotice(
+      alreadyExists
+        ? "Cadastro existente deste negócio reutilizado pelo e-mail."
+        : "Cliente cadastrado para atendimento presencial.",
+    );
   }
 
   return (
@@ -54,6 +63,11 @@ export function ClientsPage({
         description="Gerencie os clientes do seu negócio."
       >
         <div className="rounded-2xl border border-zinc-200 bg-white">
+          {notice && (
+            <p role="status" className="border-b border-zinc-100 px-5 py-3 text-xs text-emerald-700">
+              {notice}
+            </p>
+          )}
           <div className="flex flex-col gap-4 border-b border-zinc-100 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative w-full sm:max-w-xs">
               <FiSearch

@@ -12,6 +12,7 @@ import WaitlistEntry, {
 import { getCurrentUser } from "@/lib/auth";
 import Business from "@/models/Business";
 import RestaurantTable from "@/models/RestaurantTable";
+import { isAllowedWaitlistTransition } from "@/lib/waitlist-rules.mjs";
 
 const addWaitlistSchema = z.object({
   businessId: z.string().refine(mongoose.isValidObjectId, "Negócio inválido."),
@@ -29,26 +30,19 @@ const updateStatusSchema = z.object({
 
 const ACTIVE_STATUSES: WaitlistStatus[] = ["waiting", "called"];
 
-async function reindexActiveEntries(businessId: mongoose.Types.ObjectId) {
+async function getActiveEntryPosition(
+  businessId: mongoose.Types.ObjectId,
+  entryId: mongoose.Types.ObjectId,
+) {
   const entries = await WaitlistEntry.find({
     businessId,
     status: { $in: ACTIVE_STATUSES },
   })
     .sort({ joinedAt: 1, _id: 1 })
-    .select("_id position")
+    .select("_id")
     .lean();
-
-  // Atualização sequencial para evitar disparar várias gravações em paralelo.
-  for (const [index, entry] of entries.entries()) {
-    const position = index + 1;
-
-    if (entry.position !== position) {
-      await WaitlistEntry.updateOne(
-        { _id: entry._id, businessId },
-        { $set: { position } },
-      );
-    }
-  }
+  const index = entries.findIndex((entry) => entry._id.equals(entryId));
+  return index < 0 ? null : index + 1;
 }
 
 function refreshWaitlistPaths(businessId: string) {
@@ -97,17 +91,12 @@ export async function addRestaurantWaitlistEntry(formData: FormData) {
       joinedAt: new Date(),
     });
 
-    await reindexActiveEntries(businessId);
     refreshWaitlistPaths(parsed.data.businessId);
-
-    const savedEntry = await WaitlistEntry.findById(entry._id)
-      .select("position")
-      .lean();
 
     return {
       success: true,
       entryId: entry._id.toString(),
-      position: savedEntry?.position ?? 1,
+      position: (await getActiveEntryPosition(businessId, entry._id)) ?? 1,
     };
   } catch (error) {
     console.error("addRestaurantWaitlistEntry:", error);
@@ -159,37 +148,42 @@ export async function updateRestaurantWaitlistStatus(formData: FormData) {
       return { success: false, error: "Grupo não encontrado." };
     }
 
-    const allowedTransitions: Record<WaitlistStatus, WaitlistStatus[]> = {
-      waiting: ["called", "seated", "cancelled", "no_show"],
-      called: ["waiting", "seated", "cancelled", "no_show"],
-      seated: [],
-      cancelled: [],
-      no_show: [],
-    };
+    if (status === "seated" || status === "completed") {
+      return {
+        success: false,
+        error: "Esse status só pode ser atualizado pelo fluxo de mesas.",
+      };
+    }
 
     if (entry.status !== status) {
-      if (!allowedTransitions[entry.status].includes(status)) {
+      if (!isAllowedWaitlistTransition(entry.status, status)) {
         return {
           success: false,
           error: "Essa alteração de status não é permitida.",
         };
       }
 
-      entry.status = status;
+      const updated = await WaitlistEntry.findOneAndUpdate(
+        { _id: entryObjectId, businessId, status: entry.status },
+        {
+          $set: {
+            status,
+            ...(status === "called" ? { calledAt: new Date() } : {}),
+          },
+          ...(status === "cancelled" || status === "no_show"
+            ? { $unset: { activeUserKey: 1 } }
+            : {}),
+        },
+        { new: true },
+      );
 
-      if (status === "called") {
-        entry.calledAt = new Date();
+      if (!updated) {
+        return { success: false, error: "A entrada mudou em outra operação. Atualize a fila." };
       }
-
-      if (status === "seated") {
-        entry.seatedAt = new Date();
-      }
-
-      await entry.save();
     }
 
-    await reindexActiveEntries(businessId);
     refreshWaitlistPaths(businessIdString);
+    revalidatePath(`/b/${access.business.slug}/fila`);
 
     return { success: true };
   } catch (error) {
@@ -269,40 +263,38 @@ export async function joinRestaurantWaitlistAsClient(formData: FormData) {
       };
     }
 
-    const activeCount = await WaitlistEntry.countDocuments({
-      businessId,
-      status: { $in: ["waiting", "called"] },
-    });
-
     const entry = await WaitlistEntry.create({
       businessId,
       userId,
+      activeUserKey: userId.toString(),
       customerName: user.name,
       partySize: parsed.data.partySize,
       notes: parsed.data.notes,
-      position: activeCount + 1,
+      position: 1,
       status: "waiting",
       joinedAt: new Date(),
     });
-
-    await reindexActiveEntries(businessId);
 
     revalidatePath("/cliente/fila");
     revalidatePath(
       `/dashboard/negocios/${parsed.data.businessId}/fila-de-espera`,
     );
-
-    const savedEntry = await WaitlistEntry.findById(entry._id)
-      .select("position")
-      .lean();
+    revalidatePath(`/b/${business.slug}/fila`);
 
     return {
       success: true,
       entryId: entry._id.toString(),
-      position: savedEntry?.position ?? 1,
+      position: (await getActiveEntryPosition(businessId, entry._id)) ?? 1,
       businessName: business.name,
     };
   } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === 11000) {
+      return {
+        success: false,
+        error: "Você já tem uma entrada ativa na fila deste restaurante.",
+      };
+    }
+
     console.error("joinRestaurantWaitlistAsClient:", error);
 
     return {
@@ -374,7 +366,14 @@ export async function seatRestaurantWaitlistEntry(formData: FormData) {
         status: "available",
         capacity: { $gte: entry.partySize },
       },
-      { $set: { status: "occupied" } },
+      {
+        $set: {
+          status: "occupied",
+          occupiedEntryId: entryObjectId,
+          occupiedAt: new Date(),
+        },
+        $unset: { releasedAt: 1 },
+      },
       { new: true },
     );
 
@@ -401,6 +400,7 @@ export async function seatRestaurantWaitlistEntry(formData: FormData) {
           tableId: table._id,
           seatedAt: new Date(),
         },
+        $unset: { activeUserKey: 1 },
       },
       { new: true },
     );
@@ -413,8 +413,12 @@ export async function seatRestaurantWaitlistEntry(formData: FormData) {
           _id: table._id,
           businessId: businessObjectId,
           status: "occupied",
+          occupiedEntryId: entryObjectId,
         },
-        { $set: { status: "available" } },
+        {
+          $set: { status: "available", releasedAt: new Date() },
+          $unset: { occupiedEntryId: 1, occupiedAt: 1 },
+        },
       );
 
       claimedTableId = null;
@@ -425,22 +429,40 @@ export async function seatRestaurantWaitlistEntry(formData: FormData) {
       };
     }
 
-    await reindexActiveEntries(businessObjectId);
     refreshWaitlistPaths(businessId);
     revalidatePath("/cliente/fila");
+    revalidatePath(`/b/${access.business.slug}/fila`);
 
     return { success: true };
   } catch (error) {
     // Recuperação de melhor esforço se ocorrer uma falha inesperada
     // depois de reservar a mesa.
     if (claimedTableId) {
+      const committedEntry = await WaitlistEntry.exists({
+        _id: entryObjectId,
+        businessId: businessObjectId,
+        status: { $in: ["seated", "completed"] },
+        tableId: claimedTableId,
+      }).catch(() => null);
+
+      if (committedEntry) {
+        refreshWaitlistPaths(businessId);
+        revalidatePath("/cliente/fila");
+        console.error("seatRestaurantWaitlistEntry: pós-processamento falhou após acomodação confirmada", error);
+        return { success: true };
+      }
+
       await RestaurantTable.updateOne(
         {
           _id: claimedTableId,
           businessId: businessObjectId,
           status: "occupied",
+          occupiedEntryId: entryObjectId,
         },
-        { $set: { status: "available" } },
+        {
+          $set: { status: "available", releasedAt: new Date() },
+          $unset: { occupiedEntryId: 1, occupiedAt: 1 },
+        },
       ).catch(() => undefined);
     }
 
@@ -450,6 +472,156 @@ export async function seatRestaurantWaitlistEntry(formData: FormData) {
       success: false,
       error: "Não foi possível acomodar o grupo.",
     };
+  }
+}
+
+const releaseTableSchema = z.object({
+  businessId: z.string().refine(mongoose.isValidObjectId, "Restaurante inválido."),
+  tableId: z.string().refine(mongoose.isValidObjectId, "Mesa inválida."),
+});
+
+export async function releaseRestaurantTable(formData: FormData) {
+  const parsed = releaseTableSchema.safeParse({
+    businessId: formData.get("businessId"),
+    tableId: formData.get("tableId"),
+  });
+
+  if (!parsed.success) return { success: false, error: "Dados inválidos." };
+
+  const { businessId, tableId } = parsed.data;
+  const access = await getOwnedBusiness(businessId);
+  if (!access || access.business.category !== "restaurant") {
+    return { success: false, error: "Acesso não autorizado." };
+  }
+
+  await connectToDatabase();
+  const businessObjectId = new mongoose.Types.ObjectId(businessId);
+  const tableObjectId = new mongoose.Types.ObjectId(tableId);
+
+  try {
+    const table = await RestaurantTable.findOne({
+      _id: tableObjectId,
+      businessId: businessObjectId,
+      active: true,
+      status: "occupied",
+    }).select("occupiedEntryId").lean();
+
+    if (!table) {
+      return { success: false, error: "Mesa não ocupada ou sem grupo associado." };
+    }
+
+    let occupiedEntryId = table.occupiedEntryId;
+    if (!occupiedEntryId) {
+      // Compatibilidade com mesas ocupadas antes da associação explícita.
+      const legacyEntries = await WaitlistEntry.find({
+        businessId: businessObjectId,
+        tableId: tableObjectId,
+        status: { $in: ["seated", "completed"] },
+      }).select("_id").limit(2).lean();
+      if (legacyEntries.length !== 1) {
+        return { success: false, error: "Não foi possível identificar com segurança o grupo desta mesa." };
+      }
+      occupiedEntryId = legacyEntries[0]._id;
+      const linked = await RestaurantTable.updateOne(
+        {
+          _id: tableObjectId,
+          businessId: businessObjectId,
+          status: "occupied",
+          occupiedEntryId: { $in: [null] },
+        },
+        { $set: { occupiedEntryId } },
+      );
+      if (linked.modifiedCount !== 1) {
+        return { success: false, error: "A associação da mesa mudou. Atualize a página." };
+      }
+    }
+
+    let entry = await WaitlistEntry.findOne({
+      _id: occupiedEntryId,
+      businessId: businessObjectId,
+    }).select("_id status tableId").lean();
+
+    if (!entry) {
+      return { success: false, error: "A associação da mesa precisa ser conferida antes da liberação." };
+    }
+
+    if ((entry.status === "waiting" || entry.status === "called") && !entry.tableId) {
+      // Recovery path for a process interruption between the table claim and
+      // the queue write. Physical release is still confirmed by the operator.
+      entry = await WaitlistEntry.findOneAndUpdate(
+        {
+          _id: occupiedEntryId,
+          businessId: businessObjectId,
+          status: entry.status,
+          tableId: { $exists: false },
+        },
+        {
+          $set: {
+            status: "completed",
+            tableId: tableObjectId,
+            seatedAt: new Date(),
+            completedAt: new Date(),
+          },
+          $unset: { activeUserKey: 1 },
+        },
+        { new: true },
+      ).select("_id status tableId").lean();
+      if (!entry) {
+        return { success: false, error: "A entrada mudou em outra operação. Atualize a página." };
+      }
+    }
+
+    const entryMatchesTable =
+      entry.tableId?.toString() === tableObjectId.toString() &&
+      (entry.status === "seated" || entry.status === "completed");
+    const terminalWithoutTable =
+      (entry.status === "cancelled" || entry.status === "no_show") && !entry.tableId;
+    if (!entryMatchesTable && !terminalWithoutTable) {
+      return { success: false, error: "A associação da mesa precisa ser conferida antes da liberação." };
+    }
+
+    if (entry.status === "seated") {
+      const completedEntry = await WaitlistEntry.findOneAndUpdate(
+        {
+          _id: occupiedEntryId,
+          businessId: businessObjectId,
+          status: "seated",
+          tableId: tableObjectId,
+        },
+        { $set: { status: "completed", completedAt: new Date() } },
+        { new: true },
+      ).select("_id").lean();
+      if (!completedEntry) {
+        return { success: false, error: "A entrada mudou em outra operação. Atualize a página." };
+      }
+    }
+
+    const released = await RestaurantTable.findOneAndUpdate(
+      {
+        _id: tableObjectId,
+        businessId: businessObjectId,
+        active: true,
+        status: "occupied",
+        occupiedEntryId,
+      },
+      {
+        $set: { status: "available", releasedAt: new Date() },
+        $unset: { occupiedEntryId: 1, occupiedAt: 1 },
+      },
+      { new: true },
+    ).select("_id").lean();
+
+    if (!released) {
+      return { success: false, error: "A mesa foi atualizada por outra operação. Atualize a página." };
+    }
+
+    refreshWaitlistPaths(businessId);
+    revalidatePath("/cliente/fila");
+    revalidatePath(`/b/${access.business.slug}/fila`);
+    return { success: true };
+  } catch (error) {
+    console.error("releaseRestaurantTable:", error);
+    return { success: false, error: "Não foi possível liberar a mesa." };
   }
 }
 
@@ -491,6 +663,7 @@ export async function leaveRestaurantWaitlistAsClient(formData: FormData) {
       },
       {
         $set: { status: "cancelled" },
+        $unset: { activeUserKey: 1 },
       },
       { new: true },
     );
@@ -501,8 +674,6 @@ export async function leaveRestaurantWaitlistAsClient(formData: FormData) {
         error: "Você não possui uma entrada ativa nesta fila.",
       };
     }
-
-    await reindexActiveEntries(businessId);
 
     revalidatePath("/cliente/fila");
     revalidatePath(`/b/${parsed.data.businessId}/fila`);

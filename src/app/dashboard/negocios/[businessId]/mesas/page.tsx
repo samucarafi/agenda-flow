@@ -2,7 +2,9 @@ import { notFound, redirect } from "next/navigation";
 import { getOwnedBusiness } from "@/lib/business";
 import { connectToDatabase } from "@/lib/mongodb";
 import RestaurantTable from "@/models/RestaurantTable";
+import WaitlistEntry from "@/models/WaitlistEntry";
 import TableManager from "./TableManager";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 
 type PageProps = {
   params: Promise<{ businessId: string }>;
@@ -39,23 +41,62 @@ export default async function RestaurantTablesPage({ params }: PageProps) {
       .lean(),
   ]);
 
-  const tables = documents.map((table) => ({
-    id: table._id.toString(),
-    name: table.name,
-    capacity: table.capacity,
-    status: table.status,
-  }));
+  const occupiedEntryIds = documents
+    .map((table) => table.occupiedEntryId?.toString())
+    .filter((id): id is string => Boolean(id));
+  const occupiedTableIds = documents
+    .filter((table) => table.status === "occupied")
+    .map((table) => table._id);
+  const occupiedEntries = occupiedTableIds.length
+    ? await WaitlistEntry.find({
+        businessId,
+        $or: [
+          { _id: { $in: occupiedEntryIds } },
+          { tableId: { $in: occupiedTableIds } },
+        ],
+      })
+        .select("_id customerName partySize tableId")
+        .lean()
+    : [];
+  const entryById = new Map(
+    occupiedEntries.map((entry) => [entry._id.toString(), entry]),
+  );
+  const entryByTableId = new Map(
+    occupiedEntries.map((entry) => [entry.tableId?.toString(), entry]),
+  );
+
+  const tables = documents.map((table) => {
+    const occupiedEntry = table.occupiedEntryId
+      ? entryById.get(table.occupiedEntryId.toString())
+      : entryByTableId.get(table._id.toString());
+
+    return {
+      id: table._id.toString(),
+      name: table.name,
+      capacity: table.capacity,
+      status: table.status,
+      occupiedEntry: occupiedEntry
+        ? { name: occupiedEntry.customerName, partySize: occupiedEntry.partySize }
+        : null,
+    };
+  });
 
   const inactiveTables = inactiveDocuments.map((table) => ({
     id: table._id.toString(),
     name: table.name,
     capacity: table.capacity,
     status: table.status,
+    occupiedEntry: null,
   }));
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
+    <DashboardLayout
+      title="Mesas"
+      description={access.business.name}
+      businessCategory="restaurant"
+      showHeader={false}
+    >
+      <div className="space-y-8">
         <header className="mb-8">
           <p className="text-sm font-medium text-indigo-600">
             Operação do restaurante
@@ -77,6 +118,6 @@ export default async function RestaurantTablesPage({ params }: PageProps) {
           initialInactiveTables={inactiveTables}
         />
       </div>
-    </main>
+    </DashboardLayout>
   );
 }

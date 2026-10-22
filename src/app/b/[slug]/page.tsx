@@ -1,11 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { FiArrowLeft, FiArrowRight, FiClock, FiMapPin } from "react-icons/fi";
+import { FiArrowRight, FiClock, FiMapPin } from "react-icons/fi";
 
 import { connectToDatabase } from "@/lib/mongodb";
 import Business from "@/models/Business";
 import Service from "@/models/Service";
+import MenuCategory from "@/models/MenuCategory";
+import MenuItem from "@/models/MenuItem";
+import { PublicBusinessNavigation } from "@/components/navigation/PublicBusinessNavigation";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -31,7 +34,6 @@ export default async function PublicBusinessPage({ params }: PageProps) {
   const business = await Business.findOne({
     slug: slug.toLowerCase(),
     status: "active",
-    "bookingSettings.enabled": true,
   })
     .select(
       "name slug category description address timezone theme bookingSettings gallery",
@@ -42,13 +44,27 @@ export default async function PublicBusinessPage({ params }: PageProps) {
     notFound();
   }
 
-  const services = await Service.find({
-    businessId: business._id,
-    active: true,
-  })
-    .select("name description duration price")
-    .sort({ name: 1 })
-    .lean();
+  const [services, menuCategories, menuItems] = await Promise.all([
+    business.category === "restaurant"
+      ? Promise.resolve([])
+      : Service.find({ businessId: business._id, active: true })
+          .select("name description duration price")
+          .sort({ name: 1 })
+          .lean(),
+    business.category === "restaurant"
+      ? MenuCategory.find({ businessId: business._id, active: true })
+          .sort({ sortOrder: 1, name: 1 })
+          .lean()
+      : Promise.resolve([]),
+    business.category === "restaurant"
+      ? MenuItem.find({ businessId: business._id, available: true })
+          .sort({ sortOrder: 1, name: 1 })
+          .lean()
+      : Promise.resolve([]),
+  ]);
+  const categoriesWithItems = menuCategories.filter((category) =>
+    menuItems.some((item) => item.categoryId.toString() === category._id.toString()),
+  );
 
   const primaryColor =
     typeof business.theme?.primaryColor === "string" &&
@@ -104,20 +120,8 @@ export default async function PublicBusinessPage({ params }: PageProps) {
     >
       <header className="border-b border-white/10 bg-white/[0.02]">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <Link
-            href="/cliente"
-            className="inline-flex items-center gap-2 text-sm text-slate-400 transition hover:text-white"
-          >
-            <FiArrowLeft aria-hidden="true" />
-            Área do cliente
-          </Link>
-
-          <span
-            className="text-xs font-bold tracking-[0.2em]"
-            style={{ color: accentColor }}
-          >
-            AGENDAFLOW
-          </span>
+          <span className="text-xs font-bold tracking-[0.2em]" style={{ color: accentColor }}>AGENDAFLOW</span>
+          <Link href="/cliente" className="text-sm text-slate-300 hover:text-white">Área do cliente</Link>
         </div>
       </header>
 
@@ -148,8 +152,27 @@ export default async function PublicBusinessPage({ params }: PageProps) {
 
           <p className="mt-5 flex items-center gap-2 text-sm text-slate-400">
             <FiClock aria-hidden="true" style={{ color: accentColor }} />
-            Atendimento com horário agendado
+            {business.category === "restaurant" ? "Cardápio e fila de espera" : "Atendimento com horário agendado"}
           </p>
+
+          <div className="mt-7 max-w-3xl">
+            <PublicBusinessNavigation
+              slug={business.slug}
+              category={business.category}
+              bookingEnabled={business.bookingSettings?.enabled ?? false}
+              current="home"
+            />
+          </div>
+
+          {business.category === "restaurant" && (
+            <Link
+              href={`/b/${business.slug}/fila`}
+              className="mt-6 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-slate-950 shadow-lg transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              style={{ backgroundColor: accentColor }}
+            >
+              Entrar na fila de espera <FiArrowRight aria-hidden="true" />
+            </Link>
+          )}
 
           {publicAddress && (
             <a
@@ -271,14 +294,58 @@ export default async function PublicBusinessPage({ params }: PageProps) {
         </section>
       )}
 
-      {/* Catálogo de serviços */}
-      <section className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
+      {business.category === "restaurant" ? (
+      <section id="cardapio" className="mx-auto max-w-6xl scroll-mt-8 px-4 py-10 sm:px-6 sm:py-14">
+        <div className="mb-7">
+          <p className="text-sm font-semibold tracking-[0.18em]" style={{ color: accentColor }}>CARDÁPIO</p>
+          <h2 className="mt-2 text-2xl font-bold sm:text-3xl">Menu digital</h2>
+          <p className="mt-2 text-sm text-slate-400">Confira os itens disponíveis antes de visitar o restaurante.</p>
+        </div>
+        {categoriesWithItems.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center">
+            <h3 className="font-semibold">Cardápio em preparação</h3>
+            <p className="mt-2 text-sm text-slate-400">O restaurante ainda não publicou itens do menu.</p>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {categoriesWithItems.map((category) => {
+              const items = menuItems.filter((item) => item.categoryId.toString() === category._id.toString());
+              if (!items.length) return null;
+              return (
+                <section key={category._id.toString()} aria-labelledby={`menu-${category._id.toString()}`}>
+                  <div className="mb-3">
+                    <h3 id={`menu-${category._id.toString()}`} className="text-xl font-semibold">{category.name}</h3>
+                    {category.description && <p className="mt-1 text-sm text-slate-400">{category.description}</p>}
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {items.map((item) => (
+                      <article key={item._id.toString()} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <h4 className="font-semibold">{item.name}</h4>
+                            {item.description && <p className="mt-2 text-sm leading-6 text-slate-400">{item.description}</p>}
+                          </div>
+                          <span className="shrink-0 text-sm font-semibold" style={{ color: accentColor }}>
+                            {typeof item.price === "number" ? currency.format(item.price) : "Consulte"}
+                          </span>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        )}
+      </section>
+      ) : (
+      <section id="servicos" className="mx-auto max-w-6xl scroll-mt-8 px-4 py-10 sm:px-6 sm:py-14">
         <div className="mb-7">
           <p
             className="text-sm font-semibold tracking-[0.18em]"
             style={{ color: accentColor }}
           >
-            NOSSO CATÁLOGO
+            NOSSOS SERVIÇOS
           </p>
 
           <h2 className="mt-2 text-2xl font-bold sm:text-3xl">
@@ -289,15 +356,6 @@ export default async function PublicBusinessPage({ params }: PageProps) {
             Confira as opções, a duração e o preço antes de continuar.
           </p>
         </div>
-        {business.category === "restaurant" && (
-          <Link
-            href={`/b/${business.slug}/fila`}
-            className="mt-5 inline-flex rounded-xl px-4 py-3 text-sm font-semibold text-slate-950"
-            style={{ backgroundColor: accentColor }}
-          >
-            Entrar na fila de espera
-          </Link>
-        )}
         {services.length === 0 ? (
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center">
             <h3 className="font-semibold">Nenhum serviço disponível ainda</h3>
@@ -350,6 +408,7 @@ export default async function PublicBusinessPage({ params }: PageProps) {
           </div>
         )}
       </section>
+      )}
 
       <footer className="border-t border-white/10 px-4 py-6 text-center text-xs text-slate-500">
         Agendamentos organizados com AgendaFlow.

@@ -1,18 +1,20 @@
 "use client";
 import WaitlistAutoRefresh from "./WaitlistAutoRefresh";
 import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import {
   addRestaurantWaitlistEntry,
   updateRestaurantWaitlistStatus,
   seatRestaurantWaitlistEntry,
 } from "@/actions/restaurant-waitlist";
 
-type WaitStatus = "waiting" | "called" | "seated" | "cancelled" | "no_show";
+type WaitStatus = "waiting" | "called" | "seated" | "completed" | "cancelled" | "no_show";
 
 type AvailableTable = {
   id: string;
   name: string;
   capacity: number;
+  recommendedEntry: { name: string; partySize: number } | null;
 };
 
 type Entry = {
@@ -30,6 +32,7 @@ const labels: Record<WaitStatus, string> = {
   waiting: "Aguardando",
   called: "Chamado",
   seated: "Acomodado",
+  completed: "Atendimento concluído",
   cancelled: "Cancelado",
   no_show: "Não compareceu",
 };
@@ -38,6 +41,7 @@ const badgeStyles: Record<WaitStatus, string> = {
   waiting: "bg-amber-50 text-amber-800 ring-amber-200",
   called: "bg-indigo-50 text-indigo-700 ring-indigo-200",
   seated: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  completed: "bg-teal-50 text-teal-700 ring-teal-200",
   cancelled: "bg-slate-100 text-slate-600 ring-slate-200",
   no_show: "bg-rose-50 text-rose-700 ring-rose-200",
 };
@@ -58,6 +62,7 @@ export default function WaitlistManager({
   initialEntries: Entry[];
   availableTables: AvailableTable[];
 }) {
+  const router = useRouter();
   const [selectedTables, setSelectedTables] = useState<Record<string, string>>(
     {},
   );
@@ -110,7 +115,7 @@ export default function WaitlistManager({
       setNotes("");
 
       // Sincroniza a lista com o banco e as posições recalculadas.
-      window.location.reload();
+      router.refresh();
     } catch {
       setError("Ocorreu um erro ao adicionar o grupo.");
     } finally {
@@ -139,7 +144,7 @@ export default function WaitlistManager({
       }
 
       setMessage(`Status de ${entry.customerName} atualizado.`);
-      window.location.reload();
+      router.refresh();
     } catch {
       setError("Ocorreu um erro ao atualizar a fila.");
     } finally {
@@ -159,7 +164,7 @@ export default function WaitlistManager({
         />
         <Summary
           label="Já acomodados"
-          value={entries.filter((entry) => entry.status === "seated").length}
+          value={entries.filter((entry) => entry.status === "seated" || entry.status === "completed").length}
         />
       </section>
 
@@ -314,7 +319,7 @@ export default function WaitlistManager({
                           .filter((table) => table.capacity >= entry.partySize)
                           .map((table) => (
                             <option key={table.id} value={table.id}>
-                              {table.name} · {table.capacity} lugares
+                              {table.name} · {table.capacity} lugares{table.recommendedEntry ? ` · sugestão: ${table.recommendedEntry.name}` : ""}
                             </option>
                           ))}
                       </select>
@@ -345,7 +350,7 @@ export default function WaitlistManager({
                             }
 
                             setMessage(`${entry.customerName} foi acomodado.`);
-                            window.location.reload();
+                            router.refresh();
                           } catch {
                             setError("Ocorreu um erro ao acomodar o grupo.");
                           } finally {

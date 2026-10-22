@@ -4,6 +4,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import Business from "@/models/Business";
 import Service from "@/models/Service";
 import { BookingForm } from "@/components/public/BookingForm";
+import { PublicBusinessNavigation } from "@/components/navigation/PublicBusinessNavigation";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -22,6 +23,7 @@ export default async function PublicBookingPage({
   const business = await Business.findOne({
     slug: slug.toLowerCase(),
     status: "active",
+    category: { $ne: "restaurant" },
     "bookingSettings.enabled": true,
   })
     .select("_id name slug description category timezone theme bookingSettings")
@@ -76,13 +78,12 @@ export default async function PublicBookingPage({
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
-        <a
-          href={`/b/${business.slug}`}
-          className="inline-flex items-center gap-2 text-sm text-slate-400 transition hover:text-white"
-        >
-          <span aria-hidden="true">←</span>
-          Voltar aos serviços
-        </a>
+        <PublicBusinessNavigation
+          slug={business.slug}
+          category={business.category}
+          bookingEnabled={business.bookingSettings?.enabled ?? false}
+          current="booking"
+        />
 
         <header className="mt-8 max-w-2xl">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-400">

@@ -6,6 +6,7 @@ import Business from "@/models/Business";
 import JoinWaitlistForm from "./JoinWaitListForm";
 import WaitlistEntry from "@/models/WaitlistEntry";
 import RestaurantWaitlistStatus from "./RestaurantWaitlistStatus";
+import { PublicBusinessNavigation } from "@/components/navigation/PublicBusinessNavigation";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -54,42 +55,27 @@ export default async function PublicRestaurantWaitlistPage({
           status: latestEntry.status as PublicEntryStatus,
         }
       : null;
+  const activeEntries = visibleEntry
+    ? await WaitlistEntry.find({
+        businessId: business._id,
+        status: { $in: ["waiting", "called"] },
+      })
+        .sort({ joinedAt: 1, _id: 1 })
+        .select("_id")
+        .lean()
+    : [];
+  const visiblePosition = visibleEntry
+    ? activeEntries.findIndex((entry) => entry._id.toString() === visibleEntry._id.toString()) + 1
+    : 0;
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-10 sm:px-6 sm:py-16">
       <div className="mx-auto max-w-xl">
-        <nav
-          aria-label="Navegação do restaurante"
-          className="flex flex-wrap gap-2"
-        >
-          <Link
-            href={`/b/${business.slug}`}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Página do restaurante
-          </Link>
-
-          <Link
-            href={`/b/${business.slug}/fila`}
-            aria-current="page"
-            className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white"
-          >
-            Fila de espera
-          </Link>
-
-          <Link
-            href="/cliente/fila"
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Minhas filas
-          </Link>
-
-          <Link
-            href="/cliente"
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Minha conta
-          </Link>
-        </nav>
+        <PublicBusinessNavigation
+          slug={business.slug}
+          category="restaurant"
+          bookingEnabled={false}
+          current="queue"
+        />
 
         <header className="mb-8 mt-8">
           <p className="text-sm font-semibold text-indigo-600">
@@ -109,7 +95,7 @@ export default async function PublicRestaurantWaitlistPage({
             businessName={business.name}
             initialEntry={{
               id: visibleEntry._id.toString(),
-              position: visibleEntry.position,
+              position: visibleEntry.status === "seated" ? visibleEntry.position : visiblePosition,
               partySize: visibleEntry.partySize,
               status: visibleEntry.status,
               joinedAt: visibleEntry.joinedAt.toISOString(),

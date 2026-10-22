@@ -8,7 +8,10 @@ import { createClient, type CreateClientState } from "@/actions/clients";
 interface NewClientModalProps {
   open: boolean;
   onClose: () => void;
-  onCreated: (client: NonNullable<CreateClientState["client"]>) => void;
+  onCreated: (
+    client: NonNullable<CreateClientState["client"]>,
+    alreadyExists?: boolean,
+  ) => void;
   businessId: string;
 }
 
@@ -37,9 +40,9 @@ export function NewClientModal({
 
     formRef.current?.reset();
 
-    onCreated(state.client);
+    onCreated(state.client, state.alreadyExists);
     onClose();
-  }, [state.success, state.client, onCreated, onClose]);
+  }, [state.success, state.client, state.alreadyExists, onCreated, onClose]);
 
   if (!open) {
     return null;
@@ -70,7 +73,7 @@ export function NewClientModal({
             </h2>
 
             <p className="mt-1 text-xs text-zinc-400">
-              Adicione um novo cliente ao seu negócio.
+              Para atendimento presencial. Se o e-mail já estiver cadastrado neste negócio, reutilizaremos o perfil. Isso não cria uma conta de acesso.
             </p>
           </div>
 

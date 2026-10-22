@@ -107,6 +107,13 @@ export async function updateRestaurantTableStatus(formData: FormData) {
 
   const { businessId, tableId, status } = parsed.data;
 
+  if (status === "occupied") {
+    return {
+      success: false,
+      error: "Mesas só podem ser ocupadas ao acomodar um grupo da fila.",
+    };
+  }
+
   if (!(await authorizeRestaurant(businessId))) {
     return { success: false, error: "Acesso não autorizado." };
   }
@@ -119,13 +126,14 @@ export async function updateRestaurantTableStatus(formData: FormData) {
         _id: new mongoose.Types.ObjectId(tableId),
         businessId: new mongoose.Types.ObjectId(businessId),
         active: true,
+        status: { $ne: "occupied" },
       },
       { $set: { status } },
       { new: true, runValidators: true },
     );
 
     if (!table) {
-      return { success: false, error: "Mesa não encontrada ou inativa." };
+      return { success: false, error: "Mesa ocupada, indisponível ou inativa." };
     }
 
     refreshTables(businessId);

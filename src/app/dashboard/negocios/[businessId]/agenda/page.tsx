@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { getOwnedBusiness } from "@/lib/business";
 import { connectToDatabase } from "@/lib/mongodb";
@@ -14,6 +14,9 @@ export default async function BusinessAgendaRoute({ params }: PageProps) {
   const { businessId } = await params;
   const access = await getOwnedBusiness(businessId);
   if (!access) notFound();
+  if (access.business.category === "restaurant") {
+    redirect(`/dashboard/negocios/${businessId}/fila-de-espera`);
+  }
 
   await connectToDatabase();
   const [clients, services] = await Promise.all([

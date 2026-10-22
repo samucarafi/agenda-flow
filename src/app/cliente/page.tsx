@@ -15,6 +15,7 @@ import Client from "@/models/Client";
 import Business from "@/models/Business";
 import "@/models/Service";
 import { LogoutButton } from "@/components/auth/LogoutButton";
+import { ClientNavigation } from "@/components/navigation/ClientNavigation";
 export const dynamic = "force-dynamic";
 
 const statusLabels: Record<string, string> = {
@@ -145,6 +146,7 @@ export default async function ClientPage() {
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-8 text-white sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl">
+        <ClientNavigation />
         <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-medium tracking-wide text-cyan-400">

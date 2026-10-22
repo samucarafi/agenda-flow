@@ -4,7 +4,9 @@ import { connectToDatabase } from "@/lib/mongodb";
 import WaitlistEntry from "@/models/WaitlistEntry";
 import WaitlistManager from "./WaitlistManager";
 import RestaurantTable from "@/models/RestaurantTable";
+import { recommendWaitlistEntry } from "@/lib/waitlist-rules.mjs";
 import Link from "next/link";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 
 type PageProps = {
   params: Promise<{ businessId: string }>;
@@ -25,10 +27,18 @@ export default async function RestaurantWaitlistPage({ params }: PageProps) {
 
   await connectToDatabase();
 
-  const documents = await WaitlistEntry.find({ businessId })
-    .sort({ joinedAt: -1 })
-    .limit(100)
-    .lean();
+  const [activeDocuments, finishedDocuments] = await Promise.all([
+    WaitlistEntry.find({ businessId, status: { $in: ["waiting", "called"] } })
+      .sort({ joinedAt: 1, _id: 1 })
+      .lean(),
+    WaitlistEntry.find({ businessId, status: { $in: ["seated", "completed", "cancelled", "no_show"] } })
+      .sort({ joinedAt: -1 })
+      .limit(50)
+      .lean(),
+  ]);
+  const positionByEntryId = new Map(
+    activeDocuments.map((entry, index) => [entry._id.toString(), index + 1]),
+  );
 
   const availableTables = await RestaurantTable.find({
     businessId,
@@ -39,55 +49,53 @@ export default async function RestaurantWaitlistPage({ params }: PageProps) {
     .sort({ capacity: 1, name: 1 })
     .lean();
 
-  const serializedTables = availableTables.map((table) => ({
-    id: table._id.toString(),
-    name: table.name,
-    capacity: table.capacity,
-  }));
+  const activeEntries = activeDocuments;
+  const serializedTables = availableTables.map((table) => {
+    const recommendedEntry = recommendWaitlistEntry(
+      activeEntries.map((entry) => ({
+        id: entry._id.toString(),
+        partySize: entry.partySize,
+        joinedAt: entry.joinedAt,
+        status: entry.status,
+        customerName: entry.customerName,
+      })),
+      table.capacity,
+    );
 
-  const entries = documents.map((entry) => ({
+    return {
+      id: table._id.toString(),
+      name: table.name,
+      capacity: table.capacity,
+      recommendedEntry: recommendedEntry
+        ? {
+            name: recommendedEntry.customerName ?? "Grupo da fila",
+            partySize: recommendedEntry.partySize,
+          }
+        : null,
+    };
+  });
+
+  const entries = [...activeDocuments, ...finishedDocuments].map((entry) => ({
     id: entry._id.toString(),
     customerName: entry.customerName,
     phone: entry.phone ?? "",
     partySize: entry.partySize,
-    position: entry.position,
+    position: positionByEntryId.get(entry._id.toString()) ?? entry.position,
     status: entry.status,
     joinedAt: entry.joinedAt.toISOString(),
     notes: entry.notes ?? "",
   }));
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <nav
-          aria-label="Navegação do painel"
-          className="mb-6 flex flex-wrap items-center gap-2"
-        >
-          <Link
-            href="/dashboard"
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
-          >
-            <span aria-hidden="true">← </span>
-            Painel principal
-          </Link>
-
-          <Link
-            href={`/dashboard/negocios/${businessId}/configuracoes`}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
-          >
-            Configurações do negócio
-          </Link>
-
-          <Link
-            href={`/b/${access.business.slug}`}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-indigo-700 transition hover:bg-indigo-50"
-          >
-            Ver página pública ↗
-          </Link>
-        </nav>
-        <header className="mb-8">
+    <DashboardLayout
+      title="Fila de espera"
+      description={access.business.name}
+      businessCategory="restaurant"
+      showHeader={false}
+    >
+      <div className="space-y-8">
+        <header className="flex flex-wrap items-end justify-between gap-4">
+          <div>
           <p className="text-sm font-medium text-indigo-600">
             Operação do restaurante
           </p>
@@ -98,6 +106,15 @@ export default async function RestaurantWaitlistPage({ params }: PageProps) {
             Organize a ordem de atendimento, acompanhe os grupos e registre
             quando forem acomodados.
           </p>
+          </div>
+          <Link
+            href={`/b/${access.business.slug}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex rounded-xl border border-white/15 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            Abrir página pública ↗
+          </Link>
         </header>
 
         <WaitlistManager
@@ -106,6 +123,6 @@ export default async function RestaurantWaitlistPage({ params }: PageProps) {
           availableTables={serializedTables}
         />
       </div>
-    </main>
+    </DashboardLayout>
   );
 }

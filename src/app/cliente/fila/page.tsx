@@ -6,6 +6,8 @@ import WaitlistEntry from "@/models/WaitlistEntry";
 import QueueAutoRefresh from "./QueueAutoRefresh";
 import LeaveQueueButton from "./LeaveQueueButton";
 import mongoose from "mongoose";
+import "@/models/RestaurantTable";
+import { ClientNavigation } from "@/components/navigation/ClientNavigation";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +15,7 @@ const statusLabels: Record<string, string> = {
   waiting: "Aguardando",
   called: "Você foi chamado!",
   seated: "Acomodado",
+  completed: "Atendimento concluído",
   cancelled: "Cancelado",
   no_show: "Não compareceu",
 };
@@ -36,6 +39,41 @@ export default async function ClientQueuePage() {
     .populate("tableId", "name")
     .lean();
 
+  const businessIds = [
+    ...new Set(
+      entries
+        .map((entry) => {
+          const business = entry.businessId as unknown as {
+            _id?: mongoose.Types.ObjectId;
+          };
+          return business?._id?.toString();
+        })
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const activeQueueEntries = businessIds.length
+    ? await WaitlistEntry.find({
+        businessId: { $in: businessIds },
+        status: { $in: ["waiting", "called"] },
+      })
+        .sort({ businessId: 1, joinedAt: 1, _id: 1 })
+        .select("_id businessId")
+        .lean()
+    : [];
+  const positions = new Map<string, number>();
+  let previousBusinessId = "";
+  let businessPosition = 0;
+  for (const entry of activeQueueEntries) {
+    const currentBusinessId = entry.businessId.toString();
+    businessPosition =
+      currentBusinessId === previousBusinessId ? businessPosition + 1 : 1;
+    positions.set(
+      `${currentBusinessId}:${entry._id.toString()}`,
+      businessPosition,
+    );
+    previousBusinessId = currentBusinessId;
+  }
+
   const serializedEntries = entries.map((entry) => {
     const business = entry.businessId as unknown as {
       _id: mongoose.Types.ObjectId;
@@ -54,7 +92,10 @@ export default async function ClientQueuePage() {
       businessSlug: business?.slug ?? null,
       customerName: entry.customerName,
       partySize: entry.partySize,
-      position: entry.position,
+      position:
+        positions.get(
+          `${business?._id?.toString() ?? ""}:${entry._id.toString()}`,
+        ) ?? entry.position,
       status: entry.status,
       joinedAt: entry.joinedAt.toISOString(),
       tableName: table?.name ?? null,
@@ -72,6 +113,7 @@ export default async function ClientQueuePage() {
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl">
+        <ClientNavigation />
         <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-indigo-600">
@@ -85,12 +127,6 @@ export default async function ClientQueuePage() {
             </p>
           </div>
 
-          <Link
-            href="/cliente"
-            className="text-sm font-semibold text-indigo-700 hover:text-indigo-900"
-          >
-            Voltar à área do cliente
-          </Link>
         </header>
 
         <div className="mt-4">

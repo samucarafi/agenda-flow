@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import {
   createRestaurantTable,
   deactivateRestaurantTable,
   reactivateRestaurantTable,
   updateRestaurantTableStatus,
 } from "@/actions/restaurant-tables";
+import { releaseRestaurantTable } from "@/actions/restaurant-waitlist";
 
 type TableStatus = "available" | "occupied" | "cleaning" | "blocked";
 
@@ -15,6 +17,7 @@ type TableItem = {
   name: string;
   capacity: number;
   status: TableStatus;
+  occupiedEntry: { name: string; partySize: number } | null;
 };
 
 const statusLabels: Record<TableStatus, string> = {
@@ -45,6 +48,7 @@ export default function TableManager({
   initialTables: TableItem[];
   initialInactiveTables: TableItem[];
 }) {
+  const router = useRouter();
   const [tables, setTables] = useState(initialTables);
   const [inactiveTables, setInactiveTables] = useState(initialInactiveTables);
   const [name, setName] = useState("");
@@ -92,7 +96,7 @@ export default function TableManager({
     if (success) {
       setName("");
       setCapacity("2");
-      window.location.reload();
+      router.refresh();
     }
   }
 
@@ -164,6 +168,23 @@ export default function TableManager({
 
         setTables((current) => [{ ...table, status: "available" }, ...current]);
       }
+    }
+  }
+
+  async function handleRelease(table: TableItem) {
+    const confirmed = window.confirm(
+      `Confirma que o grupo de ${table.occupiedEntry?.name ?? "clientes"} deixou a mesa ${table.name}?`,
+    );
+    if (!confirmed) return;
+
+    const formData = new FormData();
+    formData.set("businessId", businessId);
+    formData.set("tableId", table.id);
+    const success = await runAction(releaseRestaurantTable, formData);
+    if (success) {
+      setTables((current) => current.map((item) => item.id === table.id
+        ? { ...item, status: "available", occupiedEntry: null }
+        : item));
     }
   }
 
@@ -285,26 +306,36 @@ export default function TableManager({
                   </span>
                 </div>
 
-                <label className="mt-5 block space-y-1.5 text-sm font-medium text-slate-700">
-                  Alterar status
-                  <select
-                    value={table.status}
+                {table.occupiedEntry && (
+                  <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-800">
+                    Em atendimento: {table.occupiedEntry.name} · {table.occupiedEntry.partySize} {table.occupiedEntry.partySize === 1 ? "pessoa" : "pessoas"}
+                  </p>
+                )}
+
+                {table.status === "occupied" ? (
+                  <button
+                    type="button"
                     disabled={pending}
-                    onChange={(event) =>
-                      void handleStatus(
-                        table.id,
-                        event.target.value as TableStatus,
-                      )
-                    }
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 disabled:opacity-60"
+                    onClick={() => void handleRelease(table)}
+                    className="mt-5 w-full rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {Object.entries(statusLabels).map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                    Confirmar desocupação
+                  </button>
+                ) : (
+                  <label className="mt-5 block space-y-1.5 text-sm font-medium text-slate-700">
+                    Disponibilidade
+                    <select
+                      value={table.status}
+                      disabled={pending}
+                      onChange={(event) => void handleStatus(table.id, event.target.value as TableStatus)}
+                      className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 disabled:opacity-60"
+                    >
+                      {Object.entries(statusLabels).filter(([value]) => value !== "occupied").map(([value, label]) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
 
                 <button
                   type="button"

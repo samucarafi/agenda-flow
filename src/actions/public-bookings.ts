@@ -21,6 +21,7 @@ type BusinessData = {
   _id: unknown;
   name: string;
   slug: string;
+  category?: string;
   timezone?: string;
   bookingSettings?: {
     enabled?: boolean;
@@ -126,9 +127,10 @@ async function calculateAvailableSlots(
   const business = (await Business.findOne({
     _id: businessId,
     status: "active",
+    category: { $ne: "restaurant" },
     "bookingSettings.enabled": true,
   })
-    .select("name slug timezone bookingSettings availability")
+    .select("name slug category timezone bookingSettings availability")
     .lean()) as BusinessData | null;
 
   if (!business) {
@@ -306,6 +308,7 @@ export async function createPublicAppointment(formData: FormData) {
   const business = await Business.findOne({
     _id: input.businessId,
     status: "active",
+    category: { $ne: "restaurant" },
     "bookingSettings.enabled": true,
   })
     .select("_id bookingSettings")
