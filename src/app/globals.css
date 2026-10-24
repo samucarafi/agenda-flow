@@ -74,6 +74,19 @@ a {
   color-scheme: dark;
 }
 
+.owner-dashboard input[type="date"],
+.owner-dashboard input[type="time"] {
+  color-scheme: dark;
+  color: #f8fafc !important;
+  background-color: #0f172a !important;
+  border-color: #475569 !important;
+}
+
+.owner-dashboard input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.85);
+  opacity: 0.9;
+}
+
 .owner-dashboard [class~="bg-white"],
 .owner-dashboard [class*="bg-white/"],
 .owner-dashboard [class~="bg-slate-50"],

@@ -16,7 +16,7 @@ export default async function Home() {
     : null;
 
   return (
-    <main>
+    <main className="home-page min-h-screen bg-slate-950 text-white">
       <Navbar user={navbarUser} />
       <Hero />
       <HowItWorks />

@@ -442,12 +442,12 @@ export function AgendaPage({ businessId, clients, services }: AgendaPageProps) {
                               setSelectedDate(date);
                               setView("dia");
                             }}
-                            className="flex w-full items-center justify-between gap-3 bg-zinc-50/80 px-5 py-3 text-left transition hover:bg-zinc-100"
+                            className="flex w-full items-center justify-between gap-3 bg-slate-800/80 px-5 py-3 text-left transition hover:bg-slate-700"
                           >
-                            <span className="text-xs font-semibold capitalize text-zinc-800">
+                            <span className="text-xs font-semibold capitalize text-white">
                               {formatWeekday(date)}, {formatDateLabel(date)}
                             </span>
-                            <span className="rounded-full bg-white px-2 py-1 text-[10px] font-medium text-zinc-500 ring-1 ring-zinc-200">
+                            <span className="rounded-full bg-slate-700 px-2 py-1 text-[10px] font-medium text-slate-200 ring-1 ring-white/10">
                               {dayAppointments.length}{" "}
                               {dayAppointments.length === 1
                                 ? "agendamento"

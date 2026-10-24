@@ -284,7 +284,8 @@ export function AppointmentModal({
                   value={date}
                   onChange={(event) => setDate(event.target.value)}
                   disabled={pending}
-                  className="h-10 w-full rounded-xl border border-zinc-200 pl-9 pr-2 text-xs outline-none transition focus:border-[#635bff] disabled:bg-zinc-50"
+                  className="h-10 w-full rounded-xl border border-zinc-200 bg-white pl-9 pr-2 text-xs text-zinc-900 outline-none transition focus:border-[#635bff] disabled:bg-zinc-50"
+                  style={{ colorScheme: "light" }}
                 />
               </div>
             </div>
@@ -303,7 +304,8 @@ export function AppointmentModal({
                 value={startTime}
                 onChange={(event) => setStartTime(event.target.value)}
                 disabled={pending}
-                className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none transition focus:border-[#635bff] disabled:bg-zinc-50"
+                className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-[#635bff] disabled:bg-zinc-50"
+                style={{ colorScheme: "light" }}
               />
             </div>
           </div>
