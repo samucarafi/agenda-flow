@@ -18,6 +18,7 @@ export default async function PublicBookingPage({
 }: PageProps) {
   const { slug } = await params;
   const { service: serviceId, preview } = await searchParams;
+  const user = await getCurrentUser();
 
   await connectToDatabase();
 
@@ -25,9 +26,8 @@ export default async function PublicBookingPage({
     slug: slug.toLowerCase(),
     status: "active",
     category: { $ne: "restaurant" },
-    "bookingSettings.enabled": true,
   })
-    .select("_id name slug description category timezone theme bookingSettings")
+    .select("_id ownerId name slug description category timezone theme bookingSettings")
     .lean();
 
   if (!business) notFound();
@@ -50,18 +50,22 @@ export default async function PublicBookingPage({
     ? `color-mix(in srgb, ${theme.accentColor} 42%, transparent)`
     : `color-mix(in srgb, ${theme.primaryText} ${theme.template === "minimal" ? 12 : 16}%, transparent)`;
 
-  const user = await getCurrentUser();
+  const previewMode =
+    user?.role === "owner" &&
+    preview === "1" &&
+    business.ownerId.toString() === user.id;
 
   if (!user) {
     const next = `/b/${business.slug}/agendar?service=${selectedService._id.toString()}`;
     redirect(`/entrar?next=${encodeURIComponent(next)}`);
   }
 
-  const previewMode = user.role === "owner" && preview === "1";
-
-  if (user.role !== "client" && !previewMode) {
+  if (user.role === "owner" && !previewMode) {
     redirect("/dashboard/negocios");
   }
+
+  if (user.role === "client" && !business.bookingSettings?.enabled) notFound();
+  if (user.role !== "client" && user.role !== "owner") redirect("/dashboard/negocios");
 
   const serializedBusiness = {
     id: business._id.toString(),
@@ -108,6 +112,7 @@ export default async function PublicBookingPage({
           slug={business.slug}
           category={business.category}
           bookingEnabled={business.bookingSettings?.enabled ?? false}
+          bookingPreview={previewMode}
           current="booking"
           accentColor={theme.accentColor}
           accentText={theme.accentText}

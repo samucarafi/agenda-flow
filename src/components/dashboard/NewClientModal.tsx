@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef } from "react";
 import { FiCheck, FiLoader, FiX } from "react-icons/fi";
 
 import { createClient, type CreateClientState } from "@/actions/clients";
+import { PhoneInput } from "@/components/forms/PhoneInput";
 
 interface NewClientModalProps {
   open: boolean;
@@ -27,7 +28,6 @@ export function NewClientModal({
   businessId,
 }: NewClientModalProps) {
   const formRef = useRef<HTMLFormElement>(null);
-
   const [state, formAction, pending] = useActionState(
     createClient,
     initialState,
@@ -39,7 +39,6 @@ export function NewClientModal({
     }
 
     formRef.current?.reset();
-
     onCreated(state.client, state.alreadyExists);
     onClose();
   }, [state.success, state.client, state.alreadyExists, onCreated, onClose]);
@@ -139,13 +138,11 @@ export function NewClientModal({
               Telefone
             </label>
 
-            <input
+            <PhoneInput
               id="client-phone"
               name="phone"
-              type="tel"
               required
-              minLength={10}
-              maxLength={30}
+              minLength={14}
               placeholder="(21) 99999-9999"
               disabled={pending}
               className="h-10 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none transition placeholder:text-zinc-300 focus:border-[#635bff] disabled:bg-zinc-50"

@@ -10,6 +10,7 @@ import MenuCategory from "@/models/MenuCategory";
 import MenuItem from "@/models/MenuItem";
 import { PublicBusinessNavigation } from "@/components/navigation/PublicBusinessNavigation";
 import { getBusinessTheme } from "@/lib/business-theme";
+import { getCurrentUser } from "@/lib/auth";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -30,6 +31,8 @@ const currency = new Intl.NumberFormat("pt-BR", {
 export default async function PublicBusinessPage({ params }: PageProps) {
   const { slug } = await params;
 
+  const user = await getCurrentUser();
+
   await connectToDatabase();
 
   const business = await Business.findOne({
@@ -37,13 +40,16 @@ export default async function PublicBusinessPage({ params }: PageProps) {
     status: "active",
   })
     .select(
-      "name slug category description address timezone theme bookingSettings gallery",
+      "_id ownerId name slug category description address timezone theme bookingSettings gallery",
     )
     .lean();
 
   if (!business) {
     notFound();
   }
+
+  const bookingPreview =
+    user?.role === "owner" && business.ownerId.toString() === user.id;
 
   const [services, menuCategories, menuItems] = await Promise.all([
     business.category === "restaurant"
@@ -174,6 +180,7 @@ export default async function PublicBusinessPage({ params }: PageProps) {
               slug={business.slug}
               category={business.category}
               bookingEnabled={business.bookingSettings?.enabled ?? false}
+          bookingPreview={bookingPreview}
               current="home"
               accentColor={accentColor}
               accentText={accentText}
@@ -415,7 +422,7 @@ export default async function PublicBusinessPage({ params }: PageProps) {
                   </span>
 
                   <Link
-                    href={`/b/${business.slug}/agendar?service=${service._id.toString()}`}
+                    href={`/b/${business.slug}/agendar?service=${service._id.toString()}${bookingPreview ? "&preview=1" : ""}`}
                     className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
                     style={{ backgroundColor: accentColor, color: accentText }}
                   >

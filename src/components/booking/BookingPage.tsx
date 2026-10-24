@@ -13,6 +13,7 @@ import { TimeSelector } from "./TimeSelector";
 import { BookingSummary } from "./BookingSummary";
 import { BookingSuccess } from "./BookingSuccess";
 import { CustomerForm } from "./CustomerForm";
+import { isValidBrazilianPhone } from "@/lib/phone";
 
 export function BookingPage() {
   const [step, setStep] = useState(1);
@@ -42,7 +43,7 @@ export function BookingPage() {
   const isCustomerFormValid =
     name.trim().length >= 3 &&
     email.includes("@") &&
-    phone.replace(/\D/g, "").length >= 10;
+    isValidBrazilianPhone(phone);
 
   const canContinue =
     (step === 1 && Boolean(selectedService)) ||

@@ -7,13 +7,18 @@ import Business from "@/models/Business";
 import Service from "@/models/Service";
 import Client from "@/models/Client";
 import Appointment from "@/models/Appointment";
+import { formatBrazilianPhone, isValidBrazilianPhone } from "@/lib/phone";
 
 const bookingSchema = z.object({
   businessId: z.string().regex(/^[a-f\d]{24}$/i),
   serviceId: z.string().regex(/^[a-f\d]{24}$/i),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   startTime: z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/),
-  phone: z.string().trim().min(8).max(30),
+  phone: z
+    .string()
+    .trim()
+    .refine(isValidBrazilianPhone, "Informe um telefone com DDD e 10 ou 11 dígitos.")
+    .transform(formatBrazilianPhone),
   notes: z.string().trim().max(500).optional().default(""),
 });
 

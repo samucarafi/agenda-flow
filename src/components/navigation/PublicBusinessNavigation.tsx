@@ -10,6 +10,7 @@ export function PublicBusinessNavigation({
   slug,
   category,
   bookingEnabled,
+  bookingPreview = false,
   current,
   accentColor,
   accentText,
@@ -18,6 +19,7 @@ export function PublicBusinessNavigation({
   slug: string;
   category: string;
   bookingEnabled: boolean;
+  bookingPreview?: boolean;
   current: Section;
   accentColor?: string;
   accentText?: string;
@@ -36,7 +38,7 @@ export function PublicBusinessNavigation({
         ]
       : [
           { label: "Serviços", href: `${base}#servicos`, section: "menu" as const },
-          ...(bookingEnabled ? [{ label: "Agendar", href: `${base}/agendar`, section: "booking" as const }] : []),
+          ...(bookingEnabled || bookingPreview ? [{ label: "Agendar", href: `${base}/agendar${bookingPreview ? "?preview=1" : ""}`, section: "booking" as const }] : []),
         ]),
     { label: "Minha conta", href: "/cliente", section: null },
   ];

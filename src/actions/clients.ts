@@ -6,6 +6,7 @@ import { z } from "zod";
 import { getOwnedBusiness } from "@/lib/business";
 import { connectToDatabase } from "@/lib/mongodb";
 import Client from "@/models/Client";
+import { formatBrazilianPhone, isValidBrazilianPhone } from "@/lib/phone";
 
 export interface CreateClientState {
   success: boolean;
@@ -28,7 +29,11 @@ const clientSchema = z.object({
     .min(3, "Informe um nome com pelo menos 3 caracteres.")
     .max(100),
   email: z.string().trim().email("Informe um e-mail válido.").max(150),
-  phone: z.string().trim().min(10, "Informe um telefone válido.").max(30),
+  phone: z
+    .string()
+    .trim()
+    .refine(isValidBrazilianPhone, "Informe um telefone com DDD e 10 ou 11 dígitos.")
+    .transform(formatBrazilianPhone),
 });
 
 export async function createClient(

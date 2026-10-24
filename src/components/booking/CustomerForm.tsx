@@ -1,6 +1,7 @@
 "use client";
 
 import { FiMail, FiPhone, FiUser } from "react-icons/fi";
+import { PhoneInput } from "@/components/forms/PhoneInput";
 
 interface CustomerFormProps {
   name: string;
@@ -87,11 +88,11 @@ export function CustomerForm({
               className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"
             />
 
-            <input
-              type="tel"
+            <PhoneInput
               value={phone}
-              onChange={(event) => onPhoneChange(event.target.value)}
+              onChange={onPhoneChange}
               placeholder="(21) 99999-9999"
+              minLength={14}
               className="h-11 w-full rounded-xl border border-zinc-200 bg-white pl-10 pr-3 text-sm text-zinc-900 outline-none transition focus:border-[#635bff] focus:ring-4 focus:ring-[#635bff]/10"
             />
           </div>

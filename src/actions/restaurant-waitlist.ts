@@ -17,13 +17,19 @@ import RestaurantTable from "@/models/RestaurantTable";
 import User from "@/models/User";
 import { isAllowedWaitlistTransition } from "@/lib/waitlist-rules.mjs";
 import { isBusinessWithinHours } from "@/lib/business-hours";
+import { formatBrazilianPhone, isValidBrazilianPhone } from "@/lib/phone";
 
 const addWaitlistSchema = z.object({
   businessId: z.string().refine(mongoose.isValidObjectId, "Negócio inválido."),
   notes: z.string().trim().max(300).default(""),
   customerName: z.string().trim().min(2).max(100),
   email: z.string().trim().email("Informe um e-mail válido.").max(254),
-  phone: z.string().trim().max(30).default(""),
+  phone: z
+    .string()
+    .trim()
+    .refine((value) => !value || isValidBrazilianPhone(value), "Informe um telefone com DDD e 10 ou 11 dígitos.")
+    .transform((value) => (value ? formatBrazilianPhone(value) : ""))
+    .default(""),
   partySize: z.coerce.number().int().min(1).max(40),
 });
 

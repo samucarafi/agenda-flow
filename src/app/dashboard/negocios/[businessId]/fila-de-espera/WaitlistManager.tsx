@@ -2,6 +2,7 @@
 import WaitlistAutoRefresh from "./WaitlistAutoRefresh";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { PhoneInput } from "@/components/forms/PhoneInput";
 import {
   addRestaurantWaitlistEntry,
   updateRestaurantWaitlistStatus,
@@ -214,10 +215,9 @@ export default function WaitlistManager({
 
           <label className="space-y-1.5 text-sm font-medium text-slate-700">
             Telefone (opcional)
-            <input
-              maxLength={30}
+            <PhoneInput
               value={phone}
-              onChange={(event) => setPhone(event.target.value)}
+              onChange={setPhone}
               className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
               placeholder="(21) 99999-9999"
             />

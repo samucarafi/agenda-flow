@@ -6,6 +6,7 @@ import {
   getAvailableSlots,
 } from "@/actions/public-bookings";
 import { getBusinessTheme } from "@/lib/business-theme";
+import { PhoneInput } from "@/components/forms/PhoneInput";
 
 type ServiceItem = {
   id: string;
@@ -261,13 +262,10 @@ export function BookingForm({
             <span className="mb-2 block text-sm font-medium text-slate-200">
               Telefone para contato
             </span>
-            <input
-              type="tel"
+            <PhoneInput
               value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              minLength={8}
-              maxLength={30}
-              autoComplete="tel"
+              onChange={setPhone}
+              minLength={14}
               placeholder="(21) 99999-9999"
               required
               className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-400"
