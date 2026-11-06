@@ -142,6 +142,8 @@ export function ServicesPage({
       <DashboardLayout
         title="Serviços"
         description="Gerencie os serviços oferecidos pelo seu negócio."
+        backHref={`/dashboard/negocios/${businessId}`}
+        backLabel="Voltar ao negócio"
       >
         <div className="rounded-2xl border border-zinc-200 bg-white">
           <div className="flex flex-col gap-4 border-b border-zinc-100 p-5 sm:flex-row sm:items-center sm:justify-between">

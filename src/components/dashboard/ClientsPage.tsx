@@ -61,10 +61,15 @@ export function ClientsPage({
       <DashboardLayout
         title="Clientes"
         description="Gerencie os clientes do seu negócio."
+        backHref={`/dashboard/negocios/${businessId}`}
+        backLabel="Voltar ao negócio"
       >
         <div className="rounded-2xl border border-zinc-200 bg-white">
           {notice && (
-            <p role="status" className="border-b border-zinc-100 px-5 py-3 text-xs text-emerald-700">
+            <p
+              role="status"
+              className="border-b border-zinc-100 px-5 py-3 text-xs text-emerald-700"
+            >
               {notice}
             </p>
           )}
