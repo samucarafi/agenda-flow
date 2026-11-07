@@ -70,6 +70,14 @@ export default async function BusinessSettingsPage({
 
   const canPublish = isRestaurant ? activeTables > 0 : activeServices > 0;
 
+  const missingRequirements = isRestaurant
+    ? activeTables === 0
+      ? ["Cadastre pelo menos uma mesa ativa."]
+      : []
+    : activeServices === 0
+      ? ["Cadastre pelo menos um serviço ativo."]
+      : [];
+
   const theme = business.theme ?? {
     template: "default",
     primaryColor: "#0F172A",
@@ -330,51 +338,51 @@ export default async function BusinessSettingsPage({
             <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-7">
               <h2 className="text-lg font-semibold">Publicação</h2>
 
-              {isRestaurant ? (
-                activeTables > 0 ? (
-                  <p className="mt-2 text-sm leading-6 text-slate-400">
-                    Seu restaurante está pronto para ser publicado.
-                  </p>
-                ) : (
-                  <p className="mt-2 text-sm leading-6 text-slate-400">
-                    Cadastre pelo menos uma mesa ativa antes de publicar o
-                    restaurante.
-                  </p>
-                )
-              ) : activeServices > 0 ? (
-                <p className="mt-2 text-sm leading-6 text-slate-400">
-                  Seu negócio está pronto para ser publicado.
-                </p>
-              ) : (
-                <p className="mt-2 text-sm leading-6 text-slate-400">
-                  Cadastre pelo menos um serviço ativo antes de publicar.
-                </p>
-              )}
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                {canPublish
+                  ? "Tudo pronto! Você já pode publicar seu negócio."
+                  : "Antes de publicar, conclua os itens obrigatórios abaixo."}
+              </p>
 
-              {isRestaurant ? (
-                <button
-                  type="submit"
-                  name="intent"
-                  value="save-and-tables"
-                  className="mt-4 inline-flex rounded-xl border border-cyan-400/30 px-4 py-2.5 text-sm font-semibold text-cyan-200 hover:bg-cyan-400/10"
+              {!canPublish && (
+                <div
+                  role="status"
+                  className="mt-4 rounded-xl border border-amber-400/20 bg-amber-400/10 p-4"
                 >
-                  Salvar e cadastrar mesas
-                </button>
-              ) : (
-                <Link
-                  className="mt-4 inline-flex rounded-xl border border-cyan-400/30 px-4 py-2.5 text-sm font-semibold text-cyan-200 hover:bg-cyan-400/10"
-                  href={`/dashboard/negocios/${businessId}/servicos`}
-                >
-                  Gerenciar serviços
-                </Link>
+                  <p className="text-sm font-semibold text-amber-300">
+                    Ainda falta concluir:
+                  </p>
+
+                  <ul className="mt-2 space-y-1 text-sm text-amber-200">
+                    {missingRequirements.map((requirement) => (
+                      <li key={requirement}>• {requirement}</li>
+                    ))}
+                  </ul>
+                </div>
               )}
 
               <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                {isRestaurant ? (
+                  <Link
+                    href={`/dashboard/negocios/${businessId}/mesas?returnTo=publish`}
+                    className="inline-flex items-center justify-center rounded-xl border border-cyan-400/30 px-5 py-3 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-400/10"
+                  >
+                    Gerenciar mesas
+                  </Link>
+                ) : (
+                  <Link
+                    href={`/dashboard/negocios/${businessId}/servicos`}
+                    className="inline-flex items-center justify-center rounded-xl border border-cyan-400/30 px-5 py-3 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-400/10"
+                  >
+                    Gerenciar serviços
+                  </Link>
+                )}
+
                 <button
                   type="submit"
                   name="intent"
                   value="save"
-                  className="rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold hover:bg-white/5"
+                  className="rounded-xl border border-white/15 px-5 py-3 text-sm font-semibold transition hover:bg-white/5"
                 >
                   Salvar configurações
                 </button>
@@ -384,7 +392,7 @@ export default async function BusinessSettingsPage({
                   name="intent"
                   value="publish"
                   disabled={!canPublish}
-                  className="rounded-xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Publicar negócio
                 </button>

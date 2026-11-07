@@ -1,5 +1,5 @@
 "use client";
-
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { FiClock, FiEdit2, FiPlus, FiSearch, FiTrash2 } from "react-icons/fi";
 import { DashboardLayout } from "./DashboardLayout";
@@ -19,11 +19,18 @@ type ServiceData = {
 interface ServicesPageProps {
   businessId: string;
   services: ServiceData[];
+  isPublished: boolean;
+}
+
+interface ServicesPageProps {
+  businessId: string;
+  services: ServiceData[];
 }
 
 export function ServicesPage({
   businessId,
   services: initialServices,
+  isPublished,
 }: ServicesPageProps) {
   const [services, setServices] = useState<ServiceData[]>(initialServices);
 
@@ -145,6 +152,27 @@ export function ServicesPage({
         backHref={`/dashboard/negocios/${businessId}`}
         backLabel="Voltar ao negócio"
       >
+        {!isPublished && services.some((service) => service.active) && (
+          <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.06] p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="font-semibold text-emerald-300">
+                Seu negócio já pode ser publicado!
+              </h2>
+
+              <p className="mt-1 text-sm leading-6 text-slate-400">
+                Você já cadastrou um serviço ativo. Pode continuar adicionando
+                serviços ou voltar às configurações para publicar seu negócio.
+              </p>
+            </div>
+
+            <Link
+              href={`/dashboard/negocios/${businessId}/configuracoes`}
+              className="inline-flex shrink-0 items-center justify-center rounded-xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300"
+            >
+              Voltar às configurações e publicar
+            </Link>
+          </div>
+        )}
         <div className="rounded-2xl border border-zinc-200 bg-white">
           <div className="flex flex-col gap-4 border-b border-zinc-100 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>

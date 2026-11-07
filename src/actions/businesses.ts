@@ -235,9 +235,10 @@ export async function saveBusinessSettings(formData: FormData) {
   }
 
   const requestedIntent = String(formData.get("intent") ?? "save");
-  const intent = requestedIntent === "publish" || requestedIntent === "save-and-tables"
-    ? requestedIntent
-    : "save";
+  const intent =
+    requestedIntent === "publish" || requestedIntent === "save-and-tables"
+      ? requestedIntent
+      : "save";
 
   const workingDays = formData
     .getAll("workingDays")
@@ -466,8 +467,12 @@ export async function saveBusinessSettings(formData: FormData) {
     redirect(`${settingsUrl}?error=save`);
   }
 
+  if (intent === "publish") {
+    redirect(`/dashboard/negocios/${businessId}?success=published`);
+  }
+
   if (intent === "save-and-tables") {
-    redirect(`/dashboard/negocios/${businessId}/mesas?returnTo=publish`);
+    redirect(`/dashboard/negocios/${businessId}/mesas`);
   }
 
   redirect(`${settingsUrl}?success=${intent}`);

@@ -1,5 +1,5 @@
 "use client";
-
+import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -43,12 +43,12 @@ export default function TableManager({
   businessId,
   initialTables,
   initialInactiveTables,
-  continueToPublish = false,
+  isPublished,
 }: {
   businessId: string;
   initialTables: TableItem[];
   initialInactiveTables: TableItem[];
-  continueToPublish?: boolean;
+  isPublished: boolean;
 }) {
   const router = useRouter();
   const [tables, setTables] = useState(initialTables);
@@ -87,7 +87,6 @@ export default function TableManager({
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const firstTableInSetup = continueToPublish && tables.length === 0;
 
     const formData = new FormData();
     formData.set("businessId", businessId);
@@ -99,10 +98,6 @@ export default function TableManager({
     if (success) {
       setName("");
       setCapacity("2");
-      if (firstTableInSetup) {
-        router.push(`/dashboard/negocios/${businessId}/configuracoes?success=tables`);
-        return;
-      }
       router.refresh();
     }
   }
@@ -189,9 +184,13 @@ export default function TableManager({
     formData.set("tableId", table.id);
     const success = await runAction(releaseRestaurantTable, formData);
     if (success) {
-      setTables((current) => current.map((item) => item.id === table.id
-        ? { ...item, status: "available", occupiedEntry: null }
-        : item));
+      setTables((current) =>
+        current.map((item) =>
+          item.id === table.id
+            ? { ...item, status: "available", occupiedEntry: null }
+            : item,
+        ),
+      );
     }
   }
 
@@ -202,7 +201,27 @@ export default function TableManager({
         <Summary label="Disponíveis" value={available} />
         <Summary label="Ocupadas" value={occupied} />
       </section>
+      {!isPublished && tables.length > 0 && (
+        <section className="flex flex-col gap-4 rounded-2xl border border-indigo-200 bg-indigo-50 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="font-semibold text-indigo-950">
+              Seu restaurante já pode ser publicado!
+            </h2>
 
+            <p className="mt-1 text-sm leading-6 text-indigo-800/70">
+              Você já cadastrou uma mesa ativa. Continue organizando suas mesas
+              ou volte às configurações para publicar seu restaurante.
+            </p>
+          </div>
+
+          <Link
+            href={`/dashboard/negocios/${businessId}/configuracoes`}
+            className="inline-flex shrink-0 items-center justify-center rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
+          >
+            Voltar às configurações e publicar
+          </Link>
+        </section>
+      )}
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div className="mb-5">
           <h2 className="text-lg font-semibold text-slate-900">Nova mesa</h2>
@@ -315,7 +334,9 @@ export default function TableManager({
 
                 {table.occupiedEntry && (
                   <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-800">
-                    Em atendimento: {table.occupiedEntry.name} · {table.occupiedEntry.partySize} {table.occupiedEntry.partySize === 1 ? "pessoa" : "pessoas"}
+                    Em atendimento: {table.occupiedEntry.name} ·{" "}
+                    {table.occupiedEntry.partySize}{" "}
+                    {table.occupiedEntry.partySize === 1 ? "pessoa" : "pessoas"}
                   </p>
                 )}
 
@@ -334,12 +355,21 @@ export default function TableManager({
                     <select
                       value={table.status}
                       disabled={pending}
-                      onChange={(event) => void handleStatus(table.id, event.target.value as TableStatus)}
+                      onChange={(event) =>
+                        void handleStatus(
+                          table.id,
+                          event.target.value as TableStatus,
+                        )
+                      }
                       className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 disabled:opacity-60"
                     >
-                      {Object.entries(statusLabels).filter(([value]) => value !== "occupied").map(([value, label]) => (
-                        <option key={value} value={value}>{label}</option>
-                      ))}
+                      {Object.entries(statusLabels)
+                        .filter(([value]) => value !== "occupied")
+                        .map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
                     </select>
                   </label>
                 )}

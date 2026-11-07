@@ -33,7 +33,10 @@ export default async function RestaurantWaitlistPage({ params }: PageProps) {
     WaitlistEntry.find({ businessId, status: { $in: ["waiting", "called"] } })
       .sort({ joinedAt: 1, _id: 1 })
       .lean(),
-    WaitlistEntry.find({ businessId, status: { $in: ["seated", "completed", "cancelled", "no_show"] } })
+    WaitlistEntry.find({
+      businessId,
+      status: { $in: ["seated", "completed", "cancelled", "no_show"] },
+    })
       .sort({ joinedAt: -1 })
       .limit(50)
       .lean(),
@@ -80,33 +83,36 @@ export default async function RestaurantWaitlistPage({ params }: PageProps) {
     };
   });
 
-  const entries = [...activeDocuments, ...finishedDocuments].map((entry, index) => ({
-    id: entry._id.toString(),
-    customerName: entry.customerName,
-    phone: entry.phone ?? "",
-    partySize: entry.partySize,
-    position: positionByEntryId.get(entry._id.toString()) ?? entry.position,
-    status:
-      index >= activeDocuments.length
-        ? finishedStatuses[index - activeDocuments.length]
-        : entry.status,
-    joinedAt: entry.joinedAt.toISOString(),
-    notes: entry.notes ?? "",
-  }));
+  const entries = [...activeDocuments, ...finishedDocuments].map(
+    (entry, index) => ({
+      id: entry._id.toString(),
+      customerName: entry.customerName,
+      phone: entry.phone ?? "",
+      partySize: entry.partySize,
+      position: positionByEntryId.get(entry._id.toString()) ?? entry.position,
+      status:
+        index >= activeDocuments.length
+          ? finishedStatuses[index - activeDocuments.length]
+          : entry.status,
+      joinedAt: entry.joinedAt.toISOString(),
+      notes: entry.notes ?? "",
+    }),
+  );
 
   return (
     <DashboardLayout
       title="Fila de espera"
       description={access.business.name}
       businessCategory="restaurant"
-      showHeader={false}
+      backHref={`/dashboard/negocios/${businessId}`}
+      backLabel="Voltar ao negócio"
     >
       <div className="space-y-8">
         <PageHeading
           eyebrow="Operação do restaurante"
           title="Fila de espera"
           description="Organize a ordem de atendimento, acompanhe os grupos e registre quando forem acomodados."
-          actions={(
+          actions={
             <Link
               href={`/b/${access.business.slug}`}
               target="_blank"
@@ -115,7 +121,7 @@ export default async function RestaurantWaitlistPage({ params }: PageProps) {
             >
               Abrir página pública ↗
             </Link>
-          )}
+          }
         />
 
         <WaitlistManager

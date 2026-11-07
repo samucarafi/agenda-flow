@@ -21,8 +21,12 @@ export default async function RestaurantMenuPage({
 
   await connectToDatabase();
   const [categories, items] = await Promise.all([
-    MenuCategory.find({ businessId, active: true }).sort({ sortOrder: 1, name: 1 }).lean(),
-    MenuItem.find({ businessId }).sort({ categoryId: 1, sortOrder: 1, name: 1 }).lean(),
+    MenuCategory.find({ businessId, active: true })
+      .sort({ sortOrder: 1, name: 1 })
+      .lean(),
+    MenuItem.find({ businessId })
+      .sort({ categoryId: 1, sortOrder: 1, name: 1 })
+      .lean(),
   ]);
 
   return (
@@ -30,14 +34,15 @@ export default async function RestaurantMenuPage({
       title="Menu digital"
       description={access.business.name}
       businessCategory="restaurant"
-      showHeader={false}
+      backHref={`/dashboard/negocios/${businessId}`}
+      backLabel="Voltar ao negócio"
     >
       <div className="space-y-8">
         <PageHeading
           eyebrow="Operação do restaurante"
           title="Menu digital"
           description="Organize categorias e itens. Somente itens marcados como disponíveis aparecem aos clientes."
-          actions={(
+          actions={
             <a
               href={`/b/${access.business.slug}#cardapio`}
               target="_blank"
@@ -46,7 +51,7 @@ export default async function RestaurantMenuPage({
             >
               Ver menu público ↗
             </a>
-          )}
+          }
         />
         <MenuManager
           businessId={businessId}

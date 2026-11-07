@@ -10,27 +10,38 @@ import MenuItem from "@/models/MenuItem";
 import { cloudinary } from "@/lib/cloudinary";
 
 const MENU_IMAGE_MAX_SIZE = 5 * 1024 * 1024;
-const MENU_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
+const MENU_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/avif",
+]);
 
 function uploadMenuImage(buffer: Buffer, folder: string) {
-  return new Promise<{ secure_url: string; public_id: string }>((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      {
-        folder,
-        resource_type: "image",
-        allowed_formats: ["jpg", "jpeg", "png", "webp", "avif"],
-        transformation: [
-          { width: 1400, height: 1400, crop: "limit" },
-          { quality: "auto", fetch_format: "auto" },
-        ],
-      },
-      (error, result) => {
-        if (error || !result) return reject(error ?? new Error("Upload sem resultado."));
-        resolve({ secure_url: result.secure_url, public_id: result.public_id });
-      },
-    );
-    stream.end(buffer);
-  });
+  return new Promise<{ secure_url: string; public_id: string }>(
+    (resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder,
+          resource_type: "image",
+          allowed_formats: ["jpg", "jpeg", "png", "webp", "avif"],
+          transformation: [
+            { width: 1400, height: 1400, crop: "limit" },
+            { quality: "auto", fetch_format: "auto" },
+          ],
+        },
+        (error, result) => {
+          if (error || !result)
+            return reject(error ?? new Error("Upload sem resultado."));
+          resolve({
+            secure_url: result.secure_url,
+            public_id: result.public_id,
+          });
+        },
+      );
+      stream.end(buffer);
+    },
+  );
 }
 
 const categorySchema = z.object({
@@ -67,10 +78,18 @@ export async function createRestaurantMenuCategory(formData: FormData) {
     name: formData.get("name"),
     description: formData.get("description") ?? "",
   });
-  if (!parsed.success) return { success: false, error: "Confira o nome e a descrição da categoria." };
+  if (!parsed.success)
+    return {
+      success: false,
+      error: "Confira o nome e a descrição da categoria.",
+    };
 
   const access = await authorizeRestaurant(parsed.data.businessId);
-  if (!access) return { success: false, error: "Restaurante não encontrado ou acesso não autorizado." };
+  if (!access)
+    return {
+      success: false,
+      error: "Restaurante não encontrado ou acesso não autorizado.",
+    };
 
   try {
     await connectToDatabase();
@@ -84,15 +103,25 @@ export async function createRestaurantMenuCategory(formData: FormData) {
     refreshMenu(parsed.data.businessId, access.business.slug);
     return { success: true, categoryId: category._id.toString() };
   } catch (error) {
-    if (typeof error === "object" && error !== null && "code" in error && error.code === 11000) {
-      return { success: false, error: "Já existe uma categoria com esse nome." };
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === 11000
+    ) {
+      return {
+        success: false,
+        error: "Já existe uma categoria com esse nome.",
+      };
     }
     console.error("createRestaurantMenuCategory:", error);
     return { success: false, error: "Não foi possível criar a categoria." };
   }
 }
 
-export async function createRestaurantMenuItem(formData: FormData) {
+export async function createRestaurantMenuItem(
+  formData: FormData,
+): Promise<{ success: boolean; error?: string }> {
   const parsed = itemSchema.safeParse({
     businessId: formData.get("businessId"),
     categoryId: formData.get("categoryId"),
@@ -100,20 +129,34 @@ export async function createRestaurantMenuItem(formData: FormData) {
     description: formData.get("description") ?? "",
     price: formData.get("price") ?? "",
   });
-  if (!parsed.success) return { success: false, error: "Confira os dados do item." };
+  if (!parsed.success)
+    return { success: false, error: "Confira os dados do item." };
 
   const access = await authorizeRestaurant(parsed.data.businessId);
-  if (!access) return { success: false, error: "Restaurante não encontrado ou acesso não autorizado." };
+  if (!access)
+    return {
+      success: false,
+      error: "Restaurante não encontrado ou acesso não autorizado.",
+    };
 
   const file = formData.get("image");
+
+  const imageFile = file instanceof File && file.size > 0 ? file : undefined;
   if (file !== null && file !== "" && !(file instanceof File)) {
     return { success: false, error: "Selecione um arquivo de imagem válido." };
   }
-  if (file instanceof File && !MENU_IMAGE_TYPES.has(file.type)) {
-    return { success: false, error: "Use uma imagem JPG, PNG, WebP ou AVIF." };
+  if (imageFile && !MENU_IMAGE_TYPES.has(imageFile.type)) {
+    return {
+      success: false,
+      error: "Formato inválido. Use JPG, PNG, WebP ou AVIF.",
+    };
   }
-  if (file instanceof File && (file.size <= 0 || file.size > MENU_IMAGE_MAX_SIZE)) {
-    return { success: false, error: "A imagem deve ter no máximo 5 MB." };
+
+  if (imageFile && imageFile.size > MENU_IMAGE_MAX_SIZE) {
+    return {
+      success: false,
+      error: "A imagem deve ter no máximo 5 MB.",
+    };
   }
 
   let uploadedImage: { secure_url: string; public_id: string } | undefined;
@@ -124,12 +167,18 @@ export async function createRestaurantMenuItem(formData: FormData) {
       _id: parsed.data.categoryId,
       businessId: parsed.data.businessId,
       active: true,
-    }).select("_id").lean();
-    if (!category) return { success: false, error: "Selecione uma categoria ativa deste restaurante." };
+    })
+      .select("_id")
+      .lean();
+    if (!category)
+      return {
+        success: false,
+        error: "Selecione uma categoria ativa deste restaurante.",
+      };
 
-    if (file instanceof File) {
+    if (imageFile) {
       uploadedImage = await uploadMenuImage(
-        Buffer.from(await file.arrayBuffer()),
+        Buffer.from(await imageFile!.arrayBuffer()),
         `agenda-flow/businesses/${parsed.data.businessId}/menu`,
       );
     }
@@ -152,7 +201,9 @@ export async function createRestaurantMenuItem(formData: FormData) {
   } catch (error) {
     if (uploadedImage?.public_id && !imagePersisted) {
       try {
-        await cloudinary.uploader.destroy(uploadedImage.public_id, { resource_type: "image" });
+        await cloudinary.uploader.destroy(uploadedImage.public_id, {
+          resource_type: "image",
+        });
       } catch (cleanupError) {
         console.error("restaurant menu image cleanup:", cleanupError);
       }
@@ -166,12 +217,18 @@ export async function updateRestaurantMenuItemImage(formData: FormData) {
   const businessId = String(formData.get("businessId") ?? "");
   const itemId = String(formData.get("itemId") ?? "");
   const file = formData.get("image");
-  if (!mongoose.isValidObjectId(businessId) || !mongoose.isValidObjectId(itemId)) {
+  if (
+    !mongoose.isValidObjectId(businessId) ||
+    !mongoose.isValidObjectId(itemId)
+  ) {
     return { success: false, error: "Item ou restaurante inválido." };
   }
-  if (!(file instanceof File)) return { success: false, error: "Selecione uma imagem." };
-  if (!MENU_IMAGE_TYPES.has(file.type)) return { success: false, error: "Use JPG, PNG, WebP ou AVIF." };
-  if (file.size <= 0 || file.size > MENU_IMAGE_MAX_SIZE) return { success: false, error: "A imagem deve ter no máximo 5 MB." };
+  if (!(file instanceof File))
+    return { success: false, error: "Selecione uma imagem." };
+  if (!MENU_IMAGE_TYPES.has(file.type))
+    return { success: false, error: "Use JPG, PNG, WebP ou AVIF." };
+  if (file.size <= 0 || file.size > MENU_IMAGE_MAX_SIZE)
+    return { success: false, error: "A imagem deve ter no máximo 5 MB." };
 
   const access = await authorizeRestaurant(businessId);
   if (!access) return { success: false, error: "Acesso não autorizado." };
@@ -180,7 +237,9 @@ export async function updateRestaurantMenuItemImage(formData: FormData) {
   let imagePersisted = false;
   try {
     await connectToDatabase();
-    const current = await MenuItem.findOne({ _id: itemId, businessId }).select("imagePublicId").lean();
+    const current = await MenuItem.findOne({ _id: itemId, businessId })
+      .select("imagePublicId")
+      .lean();
     if (!current) return { success: false, error: "Item não encontrado." };
 
     uploadedImage = await uploadMenuImage(
@@ -189,25 +248,39 @@ export async function updateRestaurantMenuItemImage(formData: FormData) {
     );
     const updated = await MenuItem.findOneAndUpdate(
       { _id: itemId, businessId },
-      { $set: { imageUrl: uploadedImage.secure_url, imagePublicId: uploadedImage.public_id } },
+      {
+        $set: {
+          imageUrl: uploadedImage.secure_url,
+          imagePublicId: uploadedImage.public_id,
+        },
+      },
       { new: true },
-    ).select("_id").lean();
+    )
+      .select("_id")
+      .lean();
     if (!updated) throw new Error("Item não encontrado após o envio.");
     imagePersisted = true;
 
     if (current.imagePublicId) {
-      await cloudinary.uploader.destroy(current.imagePublicId, { resource_type: "image" }).catch((error: unknown) => {
-        console.error("restaurant menu old image cleanup:", error);
-      });
+      await cloudinary.uploader
+        .destroy(current.imagePublicId, { resource_type: "image" })
+        .catch((error: unknown) => {
+          console.error("restaurant menu old image cleanup:", error);
+        });
     }
     refreshMenu(businessId, access.business.slug);
     return { success: true };
   } catch (error) {
     if (uploadedImage?.public_id && !imagePersisted) {
-      await cloudinary.uploader.destroy(uploadedImage.public_id, { resource_type: "image" }).catch(() => undefined);
+      await cloudinary.uploader
+        .destroy(uploadedImage.public_id, { resource_type: "image" })
+        .catch(() => undefined);
     }
     console.error("updateRestaurantMenuItemImage:", error);
-    return { success: false, error: "Não foi possível atualizar a foto do item." };
+    return {
+      success: false,
+      error: "Não foi possível atualizar a foto do item.",
+    };
   }
 }
 
@@ -215,7 +288,11 @@ export async function setRestaurantMenuItemAvailability(formData: FormData) {
   const businessId = String(formData.get("businessId") ?? "");
   const itemId = String(formData.get("itemId") ?? "");
   const availableValue = String(formData.get("available") ?? "");
-  if (!mongoose.isValidObjectId(businessId) || !mongoose.isValidObjectId(itemId) || !["true", "false"].includes(availableValue)) {
+  if (
+    !mongoose.isValidObjectId(businessId) ||
+    !mongoose.isValidObjectId(itemId) ||
+    !["true", "false"].includes(availableValue)
+  ) {
     return { success: false, error: "Dados inválidos." };
   }
 
@@ -228,12 +305,17 @@ export async function setRestaurantMenuItemAvailability(formData: FormData) {
       { _id: itemId, businessId },
       { $set: { available: availableValue === "true" } },
       { new: true },
-    ).select("_id").lean();
+    )
+      .select("_id")
+      .lean();
     if (!item) return { success: false, error: "Item não encontrado." };
     refreshMenu(businessId, access.business.slug);
     return { success: true };
   } catch (error) {
     console.error("setRestaurantMenuItemAvailability:", error);
-    return { success: false, error: "Não foi possível atualizar a disponibilidade." };
+    return {
+      success: false,
+      error: "Não foi possível atualizar a disponibilidade.",
+    };
   }
 }

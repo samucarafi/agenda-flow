@@ -34,5 +34,11 @@ export default async function BusinessServicesRoute({ params }: PageProps) {
     createdAt: service.createdAt.toISOString(),
   }));
 
-  return <ServicesPage businessId={businessId} services={serializedServices} />;
+  return (
+    <ServicesPage
+      businessId={businessId}
+      services={serializedServices}
+      isPublished={access.business.status === "active"}
+    />
+  );
 }

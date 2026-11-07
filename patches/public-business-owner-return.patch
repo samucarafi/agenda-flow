@@ -1,0 +1,17 @@
+*** Begin Patch
+*** Update File: src/app/b/[slug]/page.tsx
+@@
+-          <span className="text-xs font-bold tracking-[0.2em]" style={{ color: accentLabelColor }}>AGENDAFLOW</span>
+-          <Link href="/cliente" className="text-sm opacity-80 transition hover:opacity-100">Área do cliente</Link>
++          <span className="text-xs font-bold tracking-[0.2em]" style={{ color: accentLabelColor }}>AGENDAFLOW</span>
++          {bookingPreview ? (
++            <Link
++              href={`/dashboard/negocios/${business._id.toString()}`}
++              className="rounded-xl border border-current/15 px-3.5 py-2 text-sm font-semibold opacity-90 transition hover:bg-black/10 hover:opacity-100"
++            >
++              ← Voltar ao negócio
++            </Link>
++          ) : (
++            <Link href="/cliente" className="text-sm opacity-80 transition hover:opacity-100">Área do cliente</Link>
++          )}
+*** End Patch

@@ -9,11 +9,10 @@ import { PageHeading } from "@/components/dashboard/PageHeading";
 
 type PageProps = {
   params: Promise<{ businessId: string }>;
-  searchParams: Promise<{ returnTo?: string }>;
 };
 
-export default async function RestaurantTablesPage({ params, searchParams }: PageProps) {
-  const [{ businessId }, query] = await Promise.all([params, searchParams]);
+export default async function RestaurantTablesPage({ params }: PageProps) {
+  const [{ businessId }] = await Promise.all([params]);
 
   const access = await getOwnedBusiness(businessId);
 
@@ -78,7 +77,10 @@ export default async function RestaurantTablesPage({ params, searchParams }: Pag
       capacity: table.capacity,
       status: table.status,
       occupiedEntry: occupiedEntry
-        ? { name: occupiedEntry.customerName, partySize: occupiedEntry.partySize }
+        ? {
+            name: occupiedEntry.customerName,
+            partySize: occupiedEntry.partySize,
+          }
         : null,
     };
   });
@@ -96,7 +98,8 @@ export default async function RestaurantTablesPage({ params, searchParams }: Pag
       title="Mesas"
       description={access.business.name}
       businessCategory="restaurant"
-      showHeader={false}
+      backHref={`/dashboard/negocios/${businessId}`}
+      backLabel="Voltar ao negócio"
     >
       <div className="space-y-8">
         <PageHeading
@@ -110,7 +113,7 @@ export default async function RestaurantTablesPage({ params, searchParams }: Pag
           businessId={businessId}
           initialTables={tables}
           initialInactiveTables={inactiveTables}
-          continueToPublish={query.returnTo === "publish" && tables.length === 0}
+          isPublished={access.business.status === "active"}
         />
       </div>
     </DashboardLayout>
