@@ -80,6 +80,14 @@ function isRestaurant(category: string) {
             label: "Abrir fila",
           },
           {
+            title: "Clientes",
+            description:
+              "Consulte os clientes cadastrados, atualize seus dados e gerencie os acessos.",
+            href: `${basePath}/clientes`,
+            icon: FiUsers,
+            label: "Gerenciar clientes",
+          },
+          {
             title: "Menu digital",
             description:
               "Publique categorias e itens do cardápio para seus clientes.",

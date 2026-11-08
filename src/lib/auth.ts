@@ -47,10 +47,10 @@ export async function getCurrentUser() {
     _id: session.userId,
     active: true,
   })
-    .select("_id name email role mustChangePassword")
+    .select("_id name email role mustChangePassword sessionVersion")
     .lean();
 
-  if (!user) {
+  if (!user || Number(user.sessionVersion ?? 0) !== session.sessionVersion) {
     await clearSession();
     return null;
   }

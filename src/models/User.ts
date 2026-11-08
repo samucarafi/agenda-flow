@@ -7,6 +7,7 @@ export interface IUser extends Document {
   email: string;
   passwordHash: string;
   mustChangePassword: boolean;
+  sessionVersion: number;
   role: UserRole;
   active: boolean;
   createdAt: Date;
@@ -42,6 +43,13 @@ const userSchema = new Schema<IUser>(
       type: Boolean,
       default: false,
       required: true,
+    },
+
+    sessionVersion: {
+      type: Number,
+      default: 0,
+      required: true,
+      min: 0,
     },
 
     role: {

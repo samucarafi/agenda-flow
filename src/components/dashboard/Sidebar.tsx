@@ -46,39 +46,64 @@ export function Sidebar({ user, businessCategory }: SidebarProps) {
   const navigation: NavigationItem[] = businessId
     ? isRestaurant
       ? [
-          { label: "Visão geral", href: `/dashboard/negocios/${businessId}`, icon: FiGrid },
-          { label: "Fila de espera", href: `/dashboard/negocios/${businessId}/fila-de-espera`, icon: FiClock },
-          { label: "Mesas", href: `/dashboard/negocios/${businessId}/mesas`, icon: FiGrid },
-          { label: "Menu digital", href: `/dashboard/negocios/${businessId}/menu`, icon: FiBookOpen },
-          { label: "Configurações", href: `/dashboard/negocios/${businessId}/configuracoes`, icon: FiSettings },
+          {
+            label: "Visão geral",
+            href: `/dashboard/negocios/${businessId}`,
+            icon: FiGrid,
+          },
+          {
+            label: "Fila de espera",
+            href: `/dashboard/negocios/${businessId}/fila-de-espera`,
+            icon: FiClock,
+          },
+          {
+            label: "Clientes",
+            href: `/dashboard/negocios/${businessId}/clientes`,
+            icon: FiUsers,
+          },
+          {
+            label: "Mesas",
+            href: `/dashboard/negocios/${businessId}/mesas`,
+            icon: FiGrid,
+          },
+          {
+            label: "Menu digital",
+            href: `/dashboard/negocios/${businessId}/menu`,
+            icon: FiBookOpen,
+          },
+          {
+            label: "Configurações",
+            href: `/dashboard/negocios/${businessId}/configuracoes`,
+            icon: FiSettings,
+          },
         ]
       : [
-        {
-          label: "Visão geral",
-          href: `/dashboard/negocios/${businessId}`,
-          icon: FiGrid,
-        },
-        {
-          label: "Agenda",
-          href: `/dashboard/negocios/${businessId}/agenda`,
-          icon: FiCalendar,
-        },
-        {
-          label: "Clientes",
-          href: `/dashboard/negocios/${businessId}/clientes`,
-          icon: FiUsers,
-        },
-        {
-          label: "Serviços",
-          href: `/dashboard/negocios/${businessId}/servicos`,
-          icon: FiScissors,
-        },
-        {
-          label: "Configurações",
-          href: `/dashboard/negocios/${businessId}/configuracoes`,
-          icon: FiSettings,
-        },
-      ]
+          {
+            label: "Visão geral",
+            href: `/dashboard/negocios/${businessId}`,
+            icon: FiGrid,
+          },
+          {
+            label: "Agenda",
+            href: `/dashboard/negocios/${businessId}/agenda`,
+            icon: FiCalendar,
+          },
+          {
+            label: "Clientes",
+            href: `/dashboard/negocios/${businessId}/clientes`,
+            icon: FiUsers,
+          },
+          {
+            label: "Serviços",
+            href: `/dashboard/negocios/${businessId}/servicos`,
+            icon: FiScissors,
+          },
+          {
+            label: "Configurações",
+            href: `/dashboard/negocios/${businessId}/configuracoes`,
+            icon: FiSettings,
+          },
+        ]
     : [
         {
           label: "Visão geral",
@@ -190,7 +215,7 @@ export function Sidebar({ user, businessCategory }: SidebarProps) {
           </div>
 
           <Link
-            href="/perfil"
+            href="/dashboard/perfil"
             onClick={() => setMobileOpen(false)}
             aria-current={pathname === "/perfil" ? "page" : undefined}
             className={`mb-2 flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-medium transition ${pathname === "/perfil" ? "border-cyan-400/15 bg-cyan-400/10 text-cyan-300" : "border-transparent text-white hover:bg-white/[0.08] hover:text-white"}`}

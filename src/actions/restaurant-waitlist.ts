@@ -15,6 +15,7 @@ import { getCurrentUser } from "@/lib/auth";
 import Business from "@/models/Business";
 import RestaurantTable from "@/models/RestaurantTable";
 import User from "@/models/User";
+import Client from "@/models/Client";
 import { isAllowedWaitlistTransition } from "@/lib/waitlist-rules.mjs";
 import { isBusinessWithinHours } from "@/lib/business-hours";
 import { formatBrazilianPhone, isValidBrazilianPhone } from "@/lib/phone";
@@ -22,7 +23,7 @@ import { formatBrazilianPhone, isValidBrazilianPhone } from "@/lib/phone";
 const addWaitlistSchema = z.object({
   businessId: z.string().refine(mongoose.isValidObjectId, "Negócio inválido."),
   notes: z.string().trim().max(300).default(""),
-  customerName: z.string().trim().min(2).max(100),
+  customerName: z.string().trim().min(3).max(100),
   email: z.string().trim().email("Informe um e-mail válido.").max(254),
   phone: z
     .string()
@@ -115,7 +116,7 @@ export async function addRestaurantWaitlistEntry(formData: FormData) {
     let accountCreated = false;
 
     if (!customer) {
-      temporaryPassword = `Fila-${randomInt(1000, 10000)}!`;
+      temporaryPassword = `Agenda-${randomInt(100000, 1000000)}!`;
       const passwordHash = await bcrypt.hash(temporaryPassword, 12);
 
       try {
@@ -169,6 +170,27 @@ export async function addRestaurantWaitlistEntry(formData: FormData) {
       joinedAt: new Date(),
     });
     entryCreated = true;
+
+    // Mantém a área Clientes do restaurante sincronizada com os cadastros da fila.
+    // A senha nunca é armazenada no perfil do negócio; somente a referência ao usuário.
+    try {
+      await Client.findOneAndUpdate(
+        { businessId, email },
+        {
+          $set: {
+            accountUserId: userId,
+            name: parsed.data.customerName,
+            email,
+            phone: parsed.data.phone,
+            active: true,
+          },
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true },
+      );
+      revalidatePath(`/dashboard/negocios/${parsed.data.businessId}/clientes`);
+    } catch (syncError) {
+      console.error("Falha ao sincronizar cliente da fila:", syncError);
+    }
 
     refreshWaitlistPaths(parsed.data.businessId);
     revalidatePath("/cliente/fila");

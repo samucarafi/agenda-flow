@@ -8,10 +8,15 @@ if (!secret) {
 
 const secretKey = new TextEncoder().encode(secret);
 
-export async function createSession(userId: string, mustChangePassword = false) {
+export async function createSession(
+  userId: string,
+  mustChangePassword = false,
+  sessionVersion = 0,
+) {
   return new SignJWT({
     userId,
     mustChangePassword,
+    sessionVersion,
   })
     .setProtectedHeader({
       alg: "HS256",
@@ -32,6 +37,7 @@ export async function verifySession(token: string) {
     return {
       userId: payload.userId,
       mustChangePassword: payload.mustChangePassword === true,
+      sessionVersion: typeof payload.sessionVersion === "number" ? payload.sessionVersion : 0,
     };
   } catch {
     return null;

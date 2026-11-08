@@ -76,7 +76,7 @@ export async function login(
     };
   }
 
-  const token = await createSession(user._id.toString(), user.mustChangePassword);
+  const token = await createSession(user._id.toString(), user.mustChangePassword, user.sessionVersion ?? 0);
 
   await setSessionCookie(token);
 
@@ -138,9 +138,10 @@ export async function changeTemporaryPassword(
 
   user.passwordHash = await bcrypt.hash(parsed.data.newPassword, 12);
   user.mustChangePassword = false;
+  user.sessionVersion = (user.sessionVersion ?? 0) + 1;
   await user.save();
 
-  const token = await createSession(user._id.toString(), false);
+  const token = await createSession(user._id.toString(), false, user.sessionVersion);
   await setSessionCookie(token);
 
   redirect(user.role === "owner" ? "/dashboard" : "/cliente/fila");
