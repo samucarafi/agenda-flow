@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="12" y1="8" x2="116" y2="120" gradientUnits="userSpaceOnUse"><stop stop-color="#9B5CFF"/><stop offset="1" stop-color="#4C1D95"/></linearGradient>
+    <linearGradient id="stroke" x1="28" y1="22" x2="100" y2="104" gradientUnits="userSpaceOnUse"><stop stop-color="#fff"/><stop offset="1" stop-color="#E9D5FF"/></linearGradient>
+    <filter id="shadow" x="8" y="8" width="112" height="112" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+  <rect x="5" y="5" width="118" height="118" rx="34" fill="#160D2B"/>
+  <rect x="8" y="8" width="112" height="112" rx="31" fill="url(#bg)"/>
+  <path d="M39 29v12M89 29v12" stroke="url(#stroke)" stroke-width="9" stroke-linecap="round"/>
+  <path d="M31 43c0-7 5-12 12-12h42c7 0 12 5 12 12v45c0 7-5 12-12 12H43c-7 0-12-5-12-12V43Z" stroke="url(#stroke)" stroke-width="8" stroke-linejoin="round"/>
+  <path d="m45 67 13 13 27-29" stroke="url(#stroke)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M34 101c15-8 34-9 52-2 5 2 10 2 15-1" stroke="#D8B4FE" stroke-width="6" stroke-linecap="round"/>
+</svg>

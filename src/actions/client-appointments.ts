@@ -85,7 +85,7 @@ export async function cancelClientAppointment(appointmentId: string) {
           businessId: appointment.businessId.toString(),
           type: "appointment_cancelled",
           title: "Agendamento cancelado",
-          body: "Um cliente cancelou um agendamento.",
+          body: `${user.name} cancelou um agendamento em ${business.name}.`,
           href: "/dashboard",
         });
       }
@@ -248,7 +248,7 @@ export async function rescheduleClientAppointment(input: {
             businessId: appointment.businessId.toString(),
             type: "appointment_confirmed",
             title: "Agendamento reagendado",
-            body: "Um cliente alterou o horário de um agendamento.",
+            body: `${user.name} reagendou na ${business.name} para ${parsed.data.date.split("-").reverse().join("/")} às ${parsed.data.startTime}.`,
             href: "/dashboard",
           }),
         ]);

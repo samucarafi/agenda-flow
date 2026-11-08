@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FiArrowRight, FiMenu, FiX } from "react-icons/fi";
 import { useState } from "react";
+import Image from "next/image";
 
 interface NavbarProps {
   user: {
@@ -12,10 +13,16 @@ interface NavbarProps {
 
 export function Navbar({ user }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const homeHref = user ? (user.role === "owner" ? "/dashboard" : "/cliente") : "/entrar";
+  const homeHref = user
+    ? user.role === "owner"
+      ? "/dashboard"
+      : "/cliente"
+    : "/entrar";
   const startHref = user ? homeHref : "/criar-conta";
   const startLabel = user
-    ? user.role === "owner" ? "Acessar painel" : "Meus agendamentos"
+    ? user.role === "owner"
+      ? "Acessar painel"
+      : "Meus agendamentos"
     : "Começar agora";
 
   return (
@@ -27,11 +34,16 @@ export function Navbar({ user }: NavbarProps) {
             className="flex items-center gap-2 text-base font-bold tracking-tight"
             onClick={() => setIsOpen(false)}
           >
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#635bff] text-xs font-bold text-white">
-              A
+            <Image
+              src="/icons/agendaflow-mark.svg"
+              alt="AgendaFlow"
+              width={40}
+              height={40}
+              priority
+            />
+            <span>
+              Agenda<span className="text-violet-300">Flow</span>
             </span>
-
-            <span>AgendaFlow</span>
           </Link>
 
           <div className="hidden items-center gap-7 md:flex">

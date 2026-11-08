@@ -15,10 +15,22 @@ export default function manifest(): MetadataRoute.Manifest {
     categories: ["business", "productivity"],
     icons: [
       {
-        src: "/icons/agendaflow.svg",
-        sizes: "any",
-        type: "image/svg+xml",
+        src: "/icons/agendaflow-192.png",
+        sizes: "192x192",
+        type: "image/png",
         purpose: "any",
+      },
+      {
+        src: "/icons/agendaflow-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/icons/agendaflow-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
       },
     ],
   };

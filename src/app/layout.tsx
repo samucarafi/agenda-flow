@@ -23,6 +23,10 @@ export const metadata: Metadata = {
   description:
     "Organize sua agenda, gerencie clientes e serviços e simplifique seus agendamentos com o AgendaFlow.",
   applicationName: "AgendaFlow",
+  icons: {
+    icon: [{ url: "/icons/agendaflow-mark.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/icons/agendaflow-mark.svg", type: "image/svg+xml" }],
+  },
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,

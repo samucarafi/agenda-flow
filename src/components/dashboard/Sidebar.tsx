@@ -18,6 +18,7 @@ import {
 } from "react-icons/fi";
 
 import { LogoutButton } from "@/components/auth/LogoutButton";
+import Image from "next/image";
 
 interface SidebarProps {
   user: {
@@ -147,9 +148,20 @@ export function Sidebar({ user, businessCategory }: SidebarProps) {
           <Link
             href="/dashboard"
             onClick={() => setMobileOpen(false)}
-            className="text-lg font-bold tracking-tight text-slate-100"
+            aria-label="AgendaFlow — início"
+            className="flex items-center gap-2.5"
           >
-            Agenda<span className="text-cyan-400">Flow</span>
+            <Image
+              src="/icons/agendaflow-mark.svg"
+              alt="AgendaFlow"
+              width={40}
+              height={40}
+              priority
+              className="size-9"
+            />
+            <span className="text-lg font-bold tracking-tight text-slate-100">
+              Agenda<span className="text-violet-300">Flow</span>
+            </span>
           </Link>
 
           <button
