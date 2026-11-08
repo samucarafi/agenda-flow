@@ -6,6 +6,11 @@ import { redirect } from "next/navigation";
 import mongoose from "mongoose";
 import { z } from "zod";
 import RestaurantTable from "@/models/RestaurantTable";
+import WaitlistEntry from "@/models/WaitlistEntry";
+import MenuCategory from "@/models/MenuCategory";
+import MenuItem from "@/models/MenuItem";
+import TableReservation from "@/models/TableReservation";
+import BookingDayLock from "@/models/BookingDayLock";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import Business, { BUSINESS_CATEGORIES } from "@/models/Business";
@@ -88,7 +93,7 @@ export async function deleteBusiness(formData: FormData) {
   const business = await Business.findOne({
     _id: businessId,
     ownerId: user.id,
-  }).select("_id slug");
+  }).select("_id slug gallery");
 
   if (!business) {
     redirect("/dashboard/negocios");
@@ -100,7 +105,22 @@ export async function deleteBusiness(formData: FormData) {
   await business.save();
 
   try {
+    const menuImages = await MenuItem.find({ businessId: business._id })
+      .select("imagePublicId")
+      .lean();
+    const cloudinaryPublicIds = [
+      ...(business.gallery ?? []).map((image) => image.publicId),
+      ...menuImages.map((image) => image.imagePublicId),
+    ].filter((publicId): publicId is string => Boolean(publicId));
+
+    // Remove primeiro os dados dependentes para evitar referências órfãs.
     await Appointment.deleteMany({ businessId: business._id });
+    await WaitlistEntry.deleteMany({ businessId: business._id });
+    await TableReservation.deleteMany({ businessId: business._id });
+    await BookingDayLock.deleteMany({ businessId: business._id });
+    await RestaurantTable.deleteMany({ businessId: business._id });
+    await MenuItem.deleteMany({ businessId: business._id });
+    await MenuCategory.deleteMany({ businessId: business._id });
     await Client.deleteMany({ businessId: business._id });
     await Service.deleteMany({ businessId: business._id });
     await BusinessMember.deleteMany({ businessId: business._id });
@@ -109,6 +129,28 @@ export async function deleteBusiness(formData: FormData) {
       _id: business._id,
       ownerId: user.id,
     });
+
+    // A remoção de arquivos é best-effort: uma indisponibilidade do Cloudinary
+    // não deve desfazer nem bloquear a exclusão dos dados do negócio.
+    if (cloudinaryPublicIds.length > 0) {
+      try {
+        const { cloudinary } = await import("@/lib/cloudinary");
+        const results = await Promise.allSettled(
+          cloudinaryPublicIds.map((publicId) =>
+            cloudinary.uploader.destroy(publicId, {
+              resource_type: "image",
+              invalidate: true,
+            }),
+          ),
+        );
+        const failures = results.filter((result) => result.status === "rejected");
+        if (failures.length > 0) {
+          console.error(`deleteBusiness: ${failures.length} arquivo(s) não foram removidos do Cloudinary.`);
+        }
+      } catch (cloudinaryError) {
+        console.error("deleteBusiness: não foi possível limpar arquivos do Cloudinary", cloudinaryError);
+      }
+    }
 
     revalidatePath("/dashboard/negocios");
     revalidatePath(`/b/${business.slug}`);

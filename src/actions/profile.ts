@@ -3,9 +3,11 @@
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, setSessionCookie } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import User from "@/models/User";
+import Client from "@/models/Client";
+import { createSession } from "@/lib/session";
 
 export type ProfileActionState = { success: boolean; error?: string; message?: string };
 
@@ -60,9 +62,39 @@ export async function updateProfile(
     const emailInUse = await User.exists({ email, _id: { $ne: account._id }, active: true });
     if (emailInUse) return { success: false, error: "Este e-mail já está associado a outra conta." };
 
+    // Evita conflito com outro perfil do mesmo negócio antes de sincronizar o e-mail.
+    const profiles = await Client.find({ accountUserId: account._id }).select("_id businessId").lean();
+    for (const profile of profiles) {
+      const duplicateProfile = await Client.exists({
+        businessId: profile.businessId,
+        email,
+        _id: { $ne: profile._id },
+      });
+      if (duplicateProfile) {
+        return {
+          success: false,
+          error: "Este e-mail já está cadastrado como cliente em um dos negócios vinculados à sua conta.",
+        };
+      }
+    }
+
     account.name = parsed.data.name;
     account.email = email;
+    account.sessionVersion = (account.sessionVersion ?? 0) + 1;
     await account.save();
+
+    try {
+      await Client.updateMany(
+        { accountUserId: account._id },
+        { $set: { name: account.name, email: account.email } },
+      );
+    } catch (syncError) {
+      // A conta principal já foi atualizada; registra a falha para reconciliação.
+      console.error("updateProfile: falha ao sincronizar perfis de cliente", syncError);
+    }
+
+    const token = await createSession(account._id.toString(), account.mustChangePassword, account.sessionVersion);
+    await setSessionCookie(token);
   } catch (error) {
     if (typeof error === "object" && error !== null && "code" in error && error.code === 11000) {
       return { success: false, error: "Este e-mail já está associado a outra conta." };
@@ -99,7 +131,12 @@ export async function changeAccountPassword(
 
   account.passwordHash = await bcrypt.hash(parsed.data.newPassword, 12);
   account.mustChangePassword = false;
+  account.sessionVersion = (account.sessionVersion ?? 0) + 1;
   await account.save();
+
+  // Mantém a sessão atual e invalida todas as outras sessões do usuário.
+  const token = await createSession(account._id.toString(), false, account.sessionVersion);
+  await setSessionCookie(token);
   refreshProfile();
   return { success: true, message: "Sua senha foi alterada." };
 }

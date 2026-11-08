@@ -10,6 +10,7 @@ import { getAvailableSlots } from "@/actions/public-bookings";
 import Appointment from "@/models/Appointment";
 import Client from "@/models/Client";
 import Service from "@/models/Service";
+import { withBookingDayLock } from "@/lib/booking-lock";
 
 const appointmentIdSchema = z.string().refine(mongoose.isValidObjectId);
 const rescheduleSchema = z.object({
@@ -177,30 +178,29 @@ export async function rescheduleClientAppointment(input: {
 
     const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
 
-    // Verificação final, excluindo o próprio agendamento.
-    const conflict = await Appointment.findOne({
-      _id: { $ne: appointment._id },
-      businessId: appointment.businessId,
-      date,
-      status: { $ne: "cancelled" },
-      startTime: { $lt: endTime },
-      endTime: { $gt: parsed.data.startTime },
-    })
-      .select("_id")
-      .lean();
+    const saved = await withBookingDayLock(appointment.businessId, date, async () => {
+      // Exclui o próprio agendamento e serializa a atualização com novas reservas.
+      const conflict = await Appointment.findOne({
+        _id: { $ne: appointment._id },
+        businessId: appointment.businessId,
+        date,
+        status: { $ne: "cancelled" },
+        startTime: { $lt: endTime },
+        endTime: { $gt: parsed.data.startTime },
+      }).select("_id").lean();
 
-    if (conflict) {
-      return {
-        success: false,
-        error: "Esse horário acabou de ser ocupado. Escolha outro.",
-      };
+      if (conflict) return false;
+
+      appointment.date = date;
+      appointment.startTime = parsed.data.startTime;
+      appointment.endTime = endTime;
+      await appointment.save();
+      return true;
+    });
+
+    if (!saved) {
+      return { success: false, error: "Esse horário acabou de ser ocupado. Escolha outro." };
     }
-
-    appointment.date = date;
-    appointment.startTime = parsed.data.startTime;
-    appointment.endTime = endTime;
-
-    await appointment.save();
 
     revalidatePath("/cliente");
 

@@ -7,6 +7,7 @@ import Business from "@/models/Business";
 import Service from "@/models/Service";
 import Client from "@/models/Client";
 import Appointment from "@/models/Appointment";
+import { withBookingDayLock } from "@/lib/booking-lock";
 import { formatBrazilianPhone, isValidBrazilianPhone } from "@/lib/phone";
 
 const bookingSchema = z.object({
@@ -369,36 +370,36 @@ export async function createPublicAppointment(formData: FormData) {
   const endTime = timeString(start + service.duration);
   const appointmentDate = new Date(`${input.date}T00:00:00.000Z`);
 
-  // Verificação final contra conflitos antes da gravação.
-  const conflict = await Appointment.findOne({
-    businessId: input.businessId,
-    date: appointmentDate,
-    status: { $nin: ["cancelled"] },
-    startTime: { $lt: endTime },
-    endTime: { $gt: input.startTime },
-  })
-    .select("_id")
-    .lean();
-
-  if (conflict) {
-    return {
-      ok: false as const,
-      error: "Alguém acabou de reservar esse horário. Escolha outro.",
-    };
-  }
-
   const confirmationMode = business.bookingSettings?.confirmationMode;
-  await Appointment.create({
-    businessId: input.businessId,
-    userId: user.id,
-    clientId: client._id,
-    serviceId: service._id,
-    date: appointmentDate,
-    startTime: input.startTime,
-    endTime,
-    status: confirmationMode === "automatic" ? "confirmed" : "scheduled",
-    notes: input.notes,
+  const created = await withBookingDayLock(input.businessId, appointmentDate, async () => {
+    // A checagem final acontece dentro do mutex para evitar reservas simultâneas.
+    const conflict = await Appointment.findOne({
+      businessId: input.businessId,
+      date: appointmentDate,
+      status: { $nin: ["cancelled"] },
+      startTime: { $lt: endTime },
+      endTime: { $gt: input.startTime },
+    }).select("_id").lean();
+
+    if (conflict) return false;
+
+    await Appointment.create({
+      businessId: input.businessId,
+      userId: user.id,
+      clientId: client._id,
+      serviceId: service._id,
+      date: appointmentDate,
+      startTime: input.startTime,
+      endTime,
+      status: confirmationMode === "automatic" ? "confirmed" : "scheduled",
+      notes: input.notes,
+    });
+    return true;
   });
+
+  if (!created) {
+    return { ok: false as const, error: "Alguém acabou de reservar esse horário. Escolha outro." };
+  }
 
   return {
     ok: true as const,

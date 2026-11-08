@@ -8,6 +8,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { Appointment } from "@/models/Appointment";
 import { Client } from "@/models/Client";
 import { Service } from "@/models/Service";
+import { withBookingDayLock } from "@/lib/booking-lock";
 
 const appointmentSchema = z.object({
   businessId: z.string().min(1, "Negócio inválido."),
@@ -179,34 +180,33 @@ export async function createAppointment(
       };
     }
 
-    // Verifica conflitos somente dentro deste negócio e dia.
-    const conflictingAppointment = await Appointment.findOne({
-      businessId,
-      date,
-      status: { $ne: "cancelled" },
-      startTime: { $lt: endTime },
-      endTime: { $gt: startTime },
-    })
-      .select("_id")
-      .lean();
+    const appointment = await withBookingDayLock(businessId, date, async () => {
+      // A checagem e a gravação são serializadas para este negócio/dia.
+      const conflictingAppointment = await Appointment.findOne({
+        businessId,
+        date,
+        status: { $ne: "cancelled" },
+        startTime: { $lt: endTime },
+        endTime: { $gt: startTime },
+      }).select("_id").lean();
 
-    if (conflictingAppointment) {
-      return {
-        success: false,
-        error: "Já existe um agendamento nesse horário.",
-      };
-    }
+      if (conflictingAppointment) return null;
 
-    const appointment = await Appointment.create({
-      businessId,
-      clientId: client._id,
-      serviceId: service._id,
-      date,
-      startTime,
-      endTime,
-      status: "scheduled",
-      notes: notes ?? "",
+      return Appointment.create({
+        businessId,
+        clientId: client._id,
+        serviceId: service._id,
+        date,
+        startTime,
+        endTime,
+        status: "scheduled",
+        notes: notes ?? "",
+      });
     });
+
+    if (!appointment) {
+      return { success: false, error: "Já existe um agendamento nesse horário." };
+    }
 
     return {
       success: true,
