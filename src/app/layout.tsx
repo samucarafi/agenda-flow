@@ -23,6 +23,12 @@ export const metadata: Metadata = {
   description:
     "Organize sua agenda, gerencie clientes e serviços e simplifique seus agendamentos com o AgendaFlow.",
   applicationName: "AgendaFlow",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "AgendaFlow",
+  },
   robots: {
     index: process.env.NODE_ENV === "production",
     follow: process.env.NODE_ENV === "production",

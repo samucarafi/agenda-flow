@@ -4,12 +4,35 @@ import { useTransition } from "react";
 import { FiLogOut } from "react-icons/fi";
 
 import { logout } from "@/actions/auth";
+import { deactivateCurrentPushDevice } from "@/actions/push-devices";
 
 export function LogoutButton() {
   const [pending, startTransition] = useTransition();
 
   function handleLogout() {
     startTransition(async () => {
+      let pushToken: string | null = null;
+
+      try {
+        pushToken = localStorage.getItem("agenda_flow_push_token");
+      } catch {
+        // O logout não pode depender da disponibilidade do armazenamento local.
+      }
+
+      if (pushToken) {
+        try {
+          await deactivateCurrentPushDevice(pushToken);
+        } catch (error) {
+          console.error("Falha ao desativar token push no logout:", error);
+        }
+      }
+
+      try {
+        localStorage.removeItem("agenda_flow_push_token");
+      } catch {
+        // A sessão do servidor ainda será encerrada normalmente.
+      }
+
       await logout();
     });
   }

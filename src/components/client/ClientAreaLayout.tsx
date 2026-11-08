@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { ClientNavigation } from "@/components/navigation/ClientNavigation";
+import { PushNotificationSettings } from "@/components/mobile/PushNotificationSettings";
+import { NotificationInbox } from "@/components/mobile/NotificationInbox";
 
 export function ClientAreaLayout({
   children,
@@ -11,7 +13,13 @@ export function ClientAreaLayout({
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-8 text-white sm:px-6 lg:px-8">
       <div className={`mx-auto ${width === "wide" ? "max-w-6xl" : "max-w-4xl"}`}>
-        <ClientNavigation />
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <ClientNavigation />
+          <div className="flex items-center gap-2">
+            <NotificationInbox />
+            <PushNotificationSettings />
+          </div>
+        </div>
         {children}
       </div>
     </main>

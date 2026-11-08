@@ -5,6 +5,8 @@ import { z } from "zod";
 
 import { getOwnedBusiness } from "@/lib/business";
 import { connectToDatabase } from "@/lib/mongodb";
+import { notifyUser } from "@/lib/notifications";
+import { scheduleAppointmentReminders } from "@/lib/appointment-reminders";
 import { Appointment } from "@/models/Appointment";
 import { Client } from "@/models/Client";
 import { Service } from "@/models/Service";
@@ -206,6 +208,29 @@ export async function createAppointment(
 
     if (!appointment) {
       return { success: false, error: "Já existe um agendamento nesse horário." };
+    }
+
+    if (client.accountUserId) {
+      const appointmentDate = date.toISOString().slice(0, 10);
+      await Promise.allSettled([
+        notifyUser({
+          userId: client.accountUserId.toString(),
+          businessId,
+          type: "appointment_confirmed",
+          title: "Agendamento criado",
+          body: `Seu atendimento foi agendado para ${startTime} no estabelecimento.`,
+          href: "/cliente",
+        }),
+        scheduleAppointmentReminders({
+          userId: client.accountUserId.toString(),
+          businessId,
+          appointmentId: appointment._id.toString(),
+          date: appointmentDate,
+          startTime,
+          timezone: ownedBusiness.business.timezone,
+          businessName: ownedBusiness.business.name,
+        }),
+      ]);
     }
 
     return {

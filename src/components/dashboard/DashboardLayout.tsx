@@ -3,6 +3,8 @@
 import { Sidebar } from "./Sidebar";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { BackButton } from "@/components/navigation/BackButton";
+import { PushNotificationSettings } from "@/components/mobile/PushNotificationSettings";
+import { NotificationInbox } from "@/components/mobile/NotificationInbox";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -48,7 +50,7 @@ export function DashboardLayout({
                 <BackButton fallbackHref={backHref} label={backLabel} />
               )}
 
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <h1
                   className={`truncate text-sm font-semibold ${isDark ? "text-white" : "text-slate-900"}`}
                 >
@@ -62,6 +64,10 @@ export function DashboardLayout({
                     {description}
                   </p>
                 )}
+              </div>
+              <div className="ml-auto flex items-center gap-2">
+                <NotificationInbox />
+                <PushNotificationSettings />
               </div>
             </div>
           </header>

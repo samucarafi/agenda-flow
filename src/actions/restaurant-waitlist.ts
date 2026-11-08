@@ -7,6 +7,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { getOwnedBusiness } from "@/lib/business";
 import { connectToDatabase } from "@/lib/mongodb";
+import { notifyUser } from "@/lib/notifications";
 import WaitlistEntry, {
   WAITLIST_STATUSES,
   type WaitlistStatus,
@@ -171,6 +172,15 @@ export async function addRestaurantWaitlistEntry(formData: FormData) {
     });
     entryCreated = true;
 
+    await notifyUser({
+      userId: userId.toString(),
+      businessId: parsed.data.businessId,
+      type: "new_waitlist_entry",
+      title: "Você entrou na fila",
+      body: `Sua entrada na fila de ${access.business.name} foi registrada.`,
+      href: "/cliente/fila",
+    });
+
     // Mantém a área Clientes do restaurante sincronizada com os cadastros da fila.
     // A senha nunca é armazenada no perfil do negócio; somente a referência ao usuário.
     try {
@@ -244,6 +254,7 @@ export async function updateRestaurantWaitlistStatus(formData: FormData) {
   const entryObjectId = new mongoose.Types.ObjectId(entryId);
 
   try {
+    let statusChanged = false;
     const entry = await WaitlistEntry.findOne({
       _id: entryObjectId,
       businessId,
@@ -285,6 +296,18 @@ export async function updateRestaurantWaitlistStatus(formData: FormData) {
       if (!updated) {
         return { success: false, error: "A entrada mudou em outra operação. Atualize a fila." };
       }
+      statusChanged = true;
+    }
+
+    if (status === "called" && statusChanged && entry.userId) {
+      await notifyUser({
+        userId: entry.userId.toString(),
+        businessId: businessIdString,
+        type: "waitlist_called",
+        title: "É sua vez!",
+        body: `${access.business.name} chamou seu grupo. Consulte a fila para acompanhar.`,
+        href: "/cliente/fila",
+      });
     }
 
     refreshWaitlistPaths(businessIdString);
@@ -342,7 +365,7 @@ export async function joinRestaurantWaitlistAsClient(formData: FormData) {
     category: "restaurant",
     status: "active",
   })
-    .select("_id name slug timezone availability")
+    .select("_id ownerId name slug timezone availability")
     .lean();
 
   if (!business) {
@@ -392,6 +415,15 @@ export async function joinRestaurantWaitlistAsClient(formData: FormData) {
       `/dashboard/negocios/${parsed.data.businessId}/fila-de-espera`,
     );
     revalidatePath(`/b/${business.slug}/fila`);
+
+    await notifyUser({
+      userId: business.ownerId.toString(),
+      businessId: parsed.data.businessId,
+      type: "new_waitlist_entry",
+      title: "Novo grupo na fila",
+      body: `${user.name} entrou na fila de ${business.name}.`,
+      href: `/dashboard/negocios/${parsed.data.businessId}/fila-de-espera`,
+    });
 
     return {
       success: true,

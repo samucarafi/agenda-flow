@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AgendaFlow</string>
+    <string name="title_activity_main">AgendaFlow</string>
+    <string name="package_name">com.agendaflow.app</string>
+    <string name="custom_url_scheme">com.agendaflow.app</string>
+</resources>

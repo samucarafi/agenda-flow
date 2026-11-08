@@ -3,6 +3,8 @@
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
+import { notifyUser } from "@/lib/notifications";
+import { scheduleAppointmentReminders } from "@/lib/appointment-reminders";
 import Business from "@/models/Business";
 import Service from "@/models/Service";
 import Client from "@/models/Client";
@@ -317,7 +319,7 @@ export async function createPublicAppointment(formData: FormData) {
     category: { $ne: "restaurant" },
     "bookingSettings.enabled": true,
   })
-    .select("_id bookingSettings")
+    .select("_id ownerId name timezone bookingSettings")
     .lean();
 
   const service = await Service.findOne({
@@ -399,6 +401,48 @@ export async function createPublicAppointment(formData: FormData) {
 
   if (!created) {
     return { ok: false as const, error: "Alguém acabou de reservar esse horário. Escolha outro." };
+  }
+
+  const appointment = await Appointment.findOne({
+    businessId: input.businessId,
+    userId: user.id,
+    date: appointmentDate,
+    startTime: input.startTime,
+  }).select("_id").lean();
+
+  if (appointment) {
+    const confirmed = confirmationMode === "automatic";
+    await Promise.allSettled([
+      notifyUser({
+        userId: user.id,
+        businessId: input.businessId,
+        type: confirmed ? "appointment_confirmed" : "appointment_requested",
+        title: confirmed ? "Agendamento confirmado" : "Solicitação recebida",
+        body: confirmed
+          ? `Seu horário em ${business.name} foi confirmado.`
+          : `Sua solicitação para ${business.name} foi enviada ao estabelecimento.`,
+        href: "/cliente",
+      }),
+      notifyUser({
+        userId: business.ownerId.toString(),
+        businessId: input.businessId,
+        type: "new_appointment",
+        title: "Novo agendamento",
+        body: `${user.name} solicitou um horário em ${business.name}.`,
+        href: "/dashboard",
+      }),
+      ...(confirmed
+        ? [scheduleAppointmentReminders({
+            userId: user.id,
+            businessId: input.businessId,
+            appointmentId: appointment._id.toString(),
+            date: input.date,
+            startTime: input.startTime,
+            timezone: business.timezone,
+            businessName: business.name,
+          })]
+        : []),
+    ]);
   }
 
   return {

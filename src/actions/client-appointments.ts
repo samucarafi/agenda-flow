@@ -6,6 +6,9 @@ import { z } from "zod";
 
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
+import Business from "@/models/Business";
+import { notifyUser } from "@/lib/notifications";
+import { cancelAppointmentReminders, scheduleAppointmentReminders } from "@/lib/appointment-reminders";
 import { getAvailableSlots } from "@/actions/public-bookings";
 import Appointment from "@/models/Appointment";
 import Client from "@/models/Client";
@@ -69,6 +72,26 @@ export async function cancelClientAppointment(appointmentId: string) {
 
     appointment.status = "cancelled";
     await appointment.save();
+    try {
+      await cancelAppointmentReminders(appointment._id.toString());
+
+      const business = await Business.findById(appointment.businessId)
+        .select("ownerId name")
+        .lean();
+
+      if (business) {
+        await notifyUser({
+          userId: business.ownerId.toString(),
+          businessId: appointment.businessId.toString(),
+          type: "appointment_cancelled",
+          title: "Agendamento cancelado",
+          body: "Um cliente cancelou um agendamento.",
+          href: "/dashboard",
+        });
+      }
+    } catch (notificationError) {
+      console.error("Falha ao processar notificações do cancelamento:", notificationError);
+    }
 
     revalidatePath("/cliente");
 
@@ -200,6 +223,38 @@ export async function rescheduleClientAppointment(input: {
 
     if (!saved) {
       return { success: false, error: "Esse horário acabou de ser ocupado. Escolha outro." };
+    }
+
+    try {
+      const business = await Business.findById(appointment.businessId)
+        .select("ownerId name timezone")
+        .lean();
+
+      await cancelAppointmentReminders(appointment._id.toString());
+
+      if (business) {
+        await Promise.allSettled([
+          scheduleAppointmentReminders({
+            userId: user.id,
+            businessId: appointment.businessId.toString(),
+            appointmentId: appointment._id.toString(),
+            date: parsed.data.date,
+            startTime: parsed.data.startTime,
+            timezone: business.timezone,
+            businessName: business.name,
+          }),
+          notifyUser({
+            userId: business.ownerId.toString(),
+            businessId: appointment.businessId.toString(),
+            type: "appointment_confirmed",
+            title: "Agendamento reagendado",
+            body: "Um cliente alterou o horário de um agendamento.",
+            href: "/dashboard",
+          }),
+        ]);
+      }
+    } catch (notificationError) {
+      console.error("Falha ao atualizar notificações do reagendamento:", notificationError);
     }
 
     revalidatePath("/cliente");
