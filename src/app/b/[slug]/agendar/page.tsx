@@ -60,10 +60,6 @@ export default async function PublicBookingPage({
     redirect(`/entrar?next=${encodeURIComponent(next)}`);
   }
 
-  if (user.role === "owner" && !previewMode) {
-    redirect("/dashboard/negocios");
-  }
-
   if (user.role === "client" && !business.bookingSettings?.enabled) notFound();
   if (user.role !== "client" && user.role !== "owner") redirect("/dashboard/negocios");
 

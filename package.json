@@ -10,7 +10,8 @@
     "test": "node --test tests/waitlist-rules.test.mjs",
     "cap:add:android": "cap add android",
     "cap:sync": "cap sync android",
-    "cap:open:android": "cap open android"
+    "cap:open:android": "cap open android",
+    "migrate:legacy-owners": "node scripts/migrate-legacy-owners.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

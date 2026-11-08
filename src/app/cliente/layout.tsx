@@ -5,6 +5,6 @@ export default async function ClientLayout({ children }: { children: React.React
   const user = await getCurrentUser();
   if (!user) redirect("/entrar");
   if (user.mustChangePassword) redirect("/alterar-senha");
-  if (user.role !== "client") redirect("/dashboard");
+  if (user.role !== "client" && user.role !== "owner") redirect("/dashboard");
   return children;
 }

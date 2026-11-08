@@ -10,6 +10,7 @@ export interface IUser extends Document {
   sessionVersion: number;
   role: UserRole;
   active: boolean;
+  legacyUnlimited: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -59,6 +60,8 @@ const userSchema = new Schema<IUser>(
       required: true,
       index: true,
     },
+
+    legacyUnlimited: { type: Boolean, default: false, index: true },
 
     active: {
       type: Boolean,

@@ -106,7 +106,7 @@ export async function addRestaurantWaitlistEntry(formData: FormData) {
   try {
     let customer = await User.findOne({ email, active: true });
 
-    if (customer && customer.role !== "client") {
+    if (customer && customer.role !== "client" && customer.role !== "owner") {
       return {
         success: false,
         error: "Este e-mail pertence a uma conta de proprietário. Informe o e-mail da conta de cliente.",
@@ -137,7 +137,7 @@ export async function addRestaurantWaitlistEntry(formData: FormData) {
         }
         customer = await User.findOne({ email, active: true });
         temporaryPassword = undefined;
-        if (!customer || customer.role !== "client") {
+        if (!customer || customer.role !== "client" && customer.role !== "owner") {
           return { success: false, error: "Não foi possível associar uma conta de cliente a este e-mail." };
         }
       }
@@ -335,7 +335,7 @@ const joinAsClientSchema = z.object({
 export async function joinRestaurantWaitlistAsClient(formData: FormData) {
   const user = await getCurrentUser();
 
-  if (!user || user.role !== "client") {
+  if (!user || user.role !== "client" && user.role !== "owner") {
     return {
       success: false,
       error: "Entre na sua conta de cliente para participar da fila.",
@@ -778,7 +778,7 @@ const leaveWaitlistSchema = z.object({
 export async function leaveRestaurantWaitlistAsClient(formData: FormData) {
   const user = await getCurrentUser();
 
-  if (!user || user.role !== "client") {
+  if (!user || user.role !== "client" && user.role !== "owner") {
     return {
       success: false,
       error: "Entre na sua conta de cliente para continuar.",

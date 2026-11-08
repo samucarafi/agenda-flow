@@ -1,0 +1,8 @@
+import Link from "next/link";
+export const metadata = { title: "Ajuda e contato — AgendaFlow" };
+export default function ContactPage() {
+ const email = process.env.SUPPORT_EMAIL || "";
+ const subject = encodeURIComponent("Atendimento AgendaFlow");
+ const body = encodeURIComponent("Olá, equipe AgendaFlow.\n\nTipo de solicitação: dúvida / problema / erro\n\nDescrição:\n\n");
+ return <main className="min-h-screen bg-slate-950 px-4 py-12 text-white"><div className="mx-auto max-w-2xl"><Link href="/" className="text-sm text-slate-400 hover:text-white">← Início</Link><div className="mt-8 rounded-3xl border border-white/10 bg-slate-900 p-7 sm:p-10"><p className="text-xs font-bold uppercase tracking-[.2em] text-indigo-300">Estamos aqui para ajudar</p><h1 className="mt-3 text-3xl font-bold">Ajuda e contato</h1><p className="mt-3 leading-7 text-slate-400">Use nosso canal para dúvidas, problemas técnicos, erros ou solicitações relacionadas à sua conta e assinatura. Ao escrever, informe o e-mail da conta, dispositivo e o que estava tentando fazer. Não envie senhas ou dados completos de cartão.</p>{email ? <a href={`mailto:${email}?subject=${subject}&body=${body}`} className="mt-7 inline-flex rounded-xl bg-indigo-500 px-5 py-3 text-sm font-semibold hover:bg-indigo-400">Enviar e-mail para {email}</a> : <p className="mt-7 rounded-xl bg-amber-400/10 p-4 text-sm text-amber-100">Canal de suporte indisponível. Configure SUPPORT_EMAIL no servidor.</p>}<p className="mt-6 text-xs leading-5 text-slate-500">O e-mail abre o aplicativo de mensagens configurado no dispositivo. Guarde uma cópia da solicitação.</p></div></div></main>;
+}

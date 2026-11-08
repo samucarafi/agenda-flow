@@ -14,6 +14,8 @@ import {
   FiSettings,
   FiUsers,
   FiUser,
+  FiCreditCard,
+  FiHelpCircle,
   FiX,
 } from "react-icons/fi";
 
@@ -219,6 +221,15 @@ export function Sidebar({ user, businessCategory }: SidebarProps) {
         </div>
 
         <div className="shrink-0 border-t border-white/10 p-4">
+          <Link href="/cliente" onClick={() => setMobileOpen(false)} className="mb-2 flex items-center gap-3 rounded-xl border border-cyan-400/20 bg-cyan-400/5 px-3 py-2.5 text-sm font-medium text-cyan-200 transition hover:bg-cyan-400/10">
+            <FiUser size={17} /> Usar como cliente
+          </Link>
+          <Link href="/dashboard/assinatura" onClick={() => setMobileOpen(false)} className="mb-2 flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-sm font-medium text-white transition hover:bg-white/[0.08]">
+            <FiCreditCard size={17} /> Minha assinatura
+          </Link>
+          <Link href="/contato" onClick={() => setMobileOpen(false)} className="mb-3 flex items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 text-sm font-medium text-white transition hover:bg-white/[0.08]">
+            <FiHelpCircle size={17} /> Ajuda e contato
+          </Link>
           <div className="mb-3 min-w-0 px-2">
             <p className="truncate text-sm font-semibold text-slate-100">
               {user.name}

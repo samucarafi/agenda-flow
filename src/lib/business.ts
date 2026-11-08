@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import Business from "@/models/Business";
+import { getOwnerEntitlement } from "@/lib/subscription";
 
 export async function getOwnedBusiness(businessId: string) {
   const user = await getCurrentUser();
@@ -16,6 +17,9 @@ export async function getOwnedBusiness(businessId: string) {
   }
 
   await connectToDatabase();
+
+  const entitlement = await getOwnerEntitlement(user.id, user.email);
+  if (!entitlement.unlimited && entitlement.businessLimit < 1) return null;
 
   const business = await Business.findOne({
     _id: businessId,

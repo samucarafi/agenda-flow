@@ -18,7 +18,7 @@ export function Navbar({ user }: NavbarProps) {
       ? "/dashboard"
       : "/cliente"
     : "/entrar";
-  const startHref = user ? homeHref : "/criar-conta";
+  const startHref = user ? homeHref : "/criar-conta/empreendedor";
   const startLabel = user
     ? user.role === "owner"
       ? "Acessar painel"

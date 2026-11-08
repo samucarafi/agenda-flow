@@ -86,7 +86,7 @@ export async function createClient(
   try {
     let user = await User.findOne({ email });
 
-    if (user && user.role !== "client") {
+    if (user && user.role !== "client" && user.role !== "owner") {
       return {
         success: false,
         error: "Este e-mail pertence a uma conta de proprietário. Informe outro e-mail.",
@@ -119,7 +119,7 @@ export async function createClient(
         user = await User.findOne({ email });
         temporaryPassword = undefined;
 
-        if (!user || user.role !== "client" || !user.active) {
+        if (!user || (user.role !== "client" && user.role !== "owner") || !user.active) {
           return { success: false, error: "Não foi possível associar uma conta de cliente a este e-mail." };
         }
       }
@@ -222,7 +222,7 @@ export async function resetClientTemporaryPassword(formData: FormData) {
 
     const user = await User.findOne({
       _id: client.accountUserId,
-      role: "client",
+      role: { $in: ["client", "owner"] },
       active: true,
     });
 

@@ -32,7 +32,7 @@ export default async function ClientPage() {
   const user = await getCurrentUser();
 
   if (!user) redirect("/entrar");
-  if (user.role !== "client") redirect("/dashboard");
+  if (user.role !== "client" && user.role !== "owner") redirect("/dashboard");
 
   await connectToDatabase();
 

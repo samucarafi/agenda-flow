@@ -9,10 +9,11 @@ const items = [
   { label: "Meu perfil", href: "/perfil" },
 ];
 
-export function ClientNavigation() {
+export function ClientNavigation({ isOwner = false }: { isOwner?: boolean }) {
   const pathname = usePathname();
   return (
     <nav aria-label="Navegação da área do cliente" className="mb-6 flex gap-2 overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.04] p-2">
+      {isOwner && <Link href="/dashboard" className="shrink-0 rounded-xl px-3.5 py-2.5 text-sm font-medium text-violet-200 hover:bg-white/10">Modo empreendedor</Link>}
       {items.map((item) => {
         const active = pathname === item.href;
         return (

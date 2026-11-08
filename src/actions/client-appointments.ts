@@ -45,7 +45,7 @@ async function getClientAppointment(appointmentId: string, userId: string) {
 export async function cancelClientAppointment(appointmentId: string) {
   const user = await getCurrentUser();
 
-  if (!user || user.role !== "client") {
+  if (!user || user.role !== "client" && user.role !== "owner") {
     return { success: false, error: "Faça login como cliente." };
   }
 
@@ -113,7 +113,7 @@ export async function rescheduleClientAppointment(input: {
 }) {
   const user = await getCurrentUser();
 
-  if (!user || user.role !== "client") {
+  if (!user || user.role !== "client" && user.role !== "owner") {
     return { success: false, error: "Faça login como cliente." };
   }
 

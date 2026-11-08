@@ -274,7 +274,7 @@ export async function createPublicAppointment(formData: FormData) {
     return { ok: false as const, error: "Entre na sua conta para agendar." };
   }
 
-  if (user.role !== "client") {
+  if (user.role !== "client" && user.role !== "owner") {
     return {
       ok: false as const,
       error: "Entre com uma conta de cliente para realizar o agendamento.",

@@ -20,12 +20,19 @@ export function Hero() {
           <p className="mt-6 max-w-xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
             Do controle de agendamentos em barbearias à gestão de mesas e filas em restaurantes. O AgendaFlow reúne ferramentas pensadas para a realidade de cada estabelecimento.
           </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link href="/criar-conta" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#635bff] px-5 text-sm font-semibold text-white shadow-lg shadow-[#635bff]/25 transition-all hover:-translate-y-0.5 hover:bg-[#5148e8]">
-              Começar agora <FiArrowRight size={16} />
+          <div className="mt-8 grid gap-3 sm:grid-cols-2">
+            <Link href="/criar-conta/empreendedor" className="group rounded-2xl border border-indigo-300/25 bg-indigo-400/10 p-4 transition hover:-translate-y-0.5 hover:bg-indigo-400/15">
+              <span className="text-xs font-semibold uppercase tracking-wider text-indigo-200">Para negócios · 30 dias grátis</span>
+              <span className="mt-2 flex items-center justify-between text-sm font-bold text-white">Sou empreendedor <FiArrowRight /></span>
+              <span className="mt-1 block text-xs leading-5 text-slate-300">Quero cadastrar meu estabelecimento e gerenciar minha operação.</span>
             </Link>
-            <Link href="#solucoes" className="inline-flex h-12 items-center justify-center rounded-xl border border-white/15 bg-white/[0.04] px-5 text-sm font-semibold text-slate-100 transition-colors hover:bg-white/[0.09]">Conhecer as soluções</Link>
+            <Link href="/criar-conta" className="group rounded-2xl border border-cyan-300/20 bg-cyan-400/10 p-4 transition hover:-translate-y-0.5 hover:bg-cyan-400/15">
+              <span className="text-xs font-semibold uppercase tracking-wider text-cyan-200">Gratuito</span>
+              <span className="mt-2 flex items-center justify-between text-sm font-bold text-white">Sou cliente <FiArrowRight /></span>
+              <span className="mt-1 block text-xs leading-5 text-slate-300">Quero encontrar estabelecimentos e acompanhar meus agendamentos.</span>
+            </Link>
           </div>
+          <Link href="#solucoes" className="mt-4 inline-flex h-10 items-center text-sm font-semibold text-slate-300 hover:text-white">Conhecer as soluções</Link>
           <div className="mt-8 flex flex-wrap gap-x-5 gap-y-3 text-xs font-medium text-slate-300">
             <span className="inline-flex items-center gap-2"><FiCheck className="text-emerald-400" /> Recursos por tipo de negócio</span>
             <span className="inline-flex items-center gap-2"><FiCheck className="text-emerald-400" /> Página pública personalizável</span>

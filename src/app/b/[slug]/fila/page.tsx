@@ -38,7 +38,7 @@ export default async function PublicRestaurantWaitlistPage({
   const user = await getCurrentUser();
 
   let latestEntry =
-    user?.role === "client"
+    (user?.role === "client" || user?.role === "owner")
       ? await WaitlistEntry.findOne({
           businessId: business._id,
           userId: user.id,
@@ -145,7 +145,7 @@ export default async function PublicRestaurantWaitlistPage({
           </p>
         </header>
 
-        {user?.role === "client" && visibleEntry ? (
+        {(user?.role === "client" || user?.role === "owner") && visibleEntry ? (
           <RestaurantWaitlistStatus
             businessId={business._id.toString()}
             businessName={business.name}
@@ -159,7 +159,7 @@ export default async function PublicRestaurantWaitlistPage({
             }}
             theme={theme}
           />
-        ) : user?.role === "client" ? (
+        ) : (user?.role === "client" || user?.role === "owner") ? (
           <>
             {completedEntry && (
               <section
