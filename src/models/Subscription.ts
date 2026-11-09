@@ -13,6 +13,7 @@ export interface ISubscription extends Document {
   amountCents?: number;
   additionalBusinesses: number;
   cancelledAt?: Date;
+  currentPeriodEndsAt?: Date;
   provider: "mercado_pago" | "none";
   providerSubscriptionId?: string;
   pendingBillingInterval?: BillingInterval;
@@ -33,6 +34,7 @@ const subscriptionSchema = new Schema<ISubscription>({
   amountCents: { type: Number, min: 0 },
   additionalBusinesses: { type: Number, min: 0, default: 0 },
   cancelledAt: { type: Date },
+  currentPeriodEndsAt: { type: Date, index: true },
   provider: { type: String, enum: ["mercado_pago", "none"], default: "none", required: true },
   providerSubscriptionId: { type: String, trim: true, maxlength: 120 },
   pendingBillingInterval: { type: String, enum: ["month", "year"] },

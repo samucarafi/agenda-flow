@@ -25,8 +25,23 @@ export async function POST(request: NextRequest) {
       if (!invoice.preapproval_id) return NextResponse.json({ received: true });
       const subscription = await Subscription.findOne({ providerSubscriptionId: invoice.preapproval_id });
       if (!subscription) return NextResponse.json({ received: true });
-      if (invoice.status === "approved") subscription.status = "active";
-      else if (invoice.status === "rejected" || invoice.status === "cancelled") subscription.status = "past_due";
+      if (invoice.status === "approved") {
+        const preapproval = await mercadoPagoRequest<MercadoPagoPreapproval>(`/preapproval/${encodeURIComponent(invoice.preapproval_id)}`);
+        // Uma cobrança aprovada ativa o plano; a próxima data de cobrança fecha o período atual.
+        subscription.status = "active";
+        if (preapproval.next_payment_date) {
+          const periodEnd = new Date(preapproval.next_payment_date);
+          if (!Number.isNaN(periodEnd.getTime())) subscription.currentPeriodEndsAt = periodEnd;
+        }
+        if (subscription.pendingBillingInterval) subscription.billingInterval = subscription.pendingBillingInterval;
+        if (typeof subscription.pendingAdditionalBusinesses === "number") subscription.additionalBusinesses = subscription.pendingAdditionalBusinesses;
+        if (typeof subscription.pendingAmountCents === "number") subscription.amountCents = subscription.pendingAmountCents;
+        subscription.pendingBillingInterval = undefined;
+        subscription.pendingAdditionalBusinesses = undefined;
+        subscription.pendingAmountCents = undefined;
+      } else if (invoice.status === "rejected" || invoice.status === "cancelled") {
+        subscription.status = "past_due";
+      }
       subscription.lastWebhookAt = new Date();
       await subscription.save();
       return NextResponse.json({ received: true });
@@ -42,13 +57,26 @@ export async function POST(request: NextRequest) {
 
     // Só a consulta autenticada à API do Mercado Pago determina o status final.
     if (preapproval.status === "authorized") {
-      subscription.status = "active";
-      if (subscription.pendingBillingInterval) subscription.billingInterval = subscription.pendingBillingInterval;
-      if (typeof subscription.pendingAdditionalBusinesses === "number") subscription.additionalBusinesses = subscription.pendingAdditionalBusinesses;
-      if (typeof subscription.pendingAmountCents === "number") subscription.amountCents = subscription.pendingAmountCents;
+      // Autorização da recorrência não comprova pagamento. Mantém o teste grátis
+      // até seu fim ou aguarda a primeira cobrança quando o teste já expirou.
+      subscription.status = subscription.trialEndsAt.getTime() > Date.now() && !subscription.billingInterval
+        ? "trialing"
+        : "pending_payment";
     } else if (preapproval.status === "cancelled" || preapproval.status === "canceled") {
-      subscription.status = "cancelled";
-      subscription.cancelledAt = new Date();
+      const trialStillValid = subscription.trialEndsAt.getTime() > Date.now();
+      const hasPaidPlan = Boolean(subscription.billingInterval && typeof subscription.amountCents === "number");
+      if (trialStillValid && !hasPaidPlan) {
+        subscription.status = "trialing";
+        subscription.providerSubscriptionId = undefined;
+        subscription.provider = "none";
+        subscription.pendingBillingInterval = undefined;
+        subscription.pendingAdditionalBusinesses = undefined;
+        subscription.pendingAmountCents = undefined;
+        subscription.cancelledAt = undefined;
+      } else {
+        subscription.status = "cancelled";
+        subscription.cancelledAt = new Date();
+      }
     } else if (preapproval.status === "paused") {
       subscription.status = "past_due";
     } else if (preapproval.status === "pending") {

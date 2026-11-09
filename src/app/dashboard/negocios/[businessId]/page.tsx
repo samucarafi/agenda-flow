@@ -14,8 +14,7 @@ import {
 import mongoose from "mongoose";
 import { DeleteBusinessButton } from "@/components/dashboard/businesses/DeleteBusinessButton";
 import { getCurrentUser } from "@/lib/auth";
-import { connectToDatabase } from "@/lib/mongodb";
-import Business from "@/models/Business";
+import { getOwnedBusiness } from "@/lib/business";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 
 export default async function ManageBusinessPage({
@@ -34,18 +33,9 @@ export default async function ManageBusinessPage({
     notFound();
   }
 
-  await connectToDatabase();
-
-  const business = await Business.findOne({
-    _id: businessId,
-    ownerId: user.id,
-  })
-    .select(
-      "name slug category status description timezone theme bookingSettings",
-    )
-    .lean();
-
-  if (!business) notFound();
+  const access = await getOwnedBusiness(businessId);
+  if (!access) redirect("/dashboard/assinatura?aviso=acesso-bloqueado");
+  const business = access.business;
 
   const categories: Record<string, string> = {
     barbershop: "Barbearia",

@@ -14,8 +14,7 @@ import BookingDayLock from "@/models/BookingDayLock";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import Business, { BUSINESS_CATEGORIES } from "@/models/Business";
-import Subscription from "@/models/Subscription";
-import { hasUnlimitedOwnerAccess } from "@/lib/subscription";
+import { getOwnerEntitlement, hasUnlimitedOwnerAccess } from "@/lib/subscription";
 import BusinessMember from "@/models/BusinessMember";
 import Service from "@/models/Service";
 import Appointment from "@/models/Appointment";
@@ -206,20 +205,15 @@ export async function createBusiness(
 
     const unlimited = await hasUnlimitedOwnerAccess(user.id, user.email);
     if (!unlimited) {
-      const subscription = await Subscription.findOne({ ownerId: user.id });
+      const entitlement = await getOwnerEntitlement(user.id, user.email);
       const currentCount = await Business.countDocuments({ ownerId: user.id });
-      if (!subscription) {
+      if (entitlement.status === "missing") {
         return { success: false, error: "Sua assinatura não foi encontrada. Entre em contato com o suporte." };
       }
-      if (subscription.status === "trialing" && subscription.trialEndsAt.getTime() <= Date.now()) {
-        subscription.status = "expired";
-        await subscription.save();
+      if (entitlement.businessLimit < 1) {
+        return { success: false, error: "Seu período de teste ou plano terminou. Acesse Minha assinatura para contratar ou renovar um plano." };
       }
-      const isEntitled = subscription.status === "trialing" || subscription.status === "active";
-      if (!isEntitled) {
-        return { success: false, error: "Seu período de teste terminou. Acesse Minha assinatura para contratar um plano." };
-      }
-      const allowedCount = 1 + (subscription.status === "active" ? subscription.additionalBusinesses : 0);
+      const allowedCount = entitlement.businessLimit;
       if (currentCount >= allowedCount) {
         return { success: false, error: "Seu plano inclui 1 empreendimento. Contrate um adicional em Minha assinatura para cadastrar outro." };
       }

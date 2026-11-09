@@ -12,6 +12,7 @@ import Image from "next/image";
 import { getCurrentUser } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import Business from "@/models/Business";
+import { getOwnerEntitlement } from "@/lib/subscription";
 
 const categoryLabels: Record<string, string> = {
   barbershop: "Barbearia",
@@ -55,6 +56,7 @@ export default async function BusinessesPage() {
 
   await connectToDatabase();
 
+  const entitlement = await getOwnerEntitlement(user.id, user.email);
   const businesses = await Business.find({
     ownerId: user.id,
   })
@@ -87,13 +89,22 @@ export default async function BusinessesPage() {
               </p>
             </div>
 
-            <Link
-              href="/dashboard/negocios/novo"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
-            >
-              <FiPlus size={18} />
-              Novo negócio
-            </Link>
+            {entitlement.businessLimit > 0 ? (
+              <Link
+                href="/dashboard/negocios/novo"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
+              >
+                <FiPlus size={18} />
+                Novo negócio
+              </Link>
+            ) : (
+              <Link
+                href="/dashboard/assinatura"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
+              >
+                Consultar assinatura
+              </Link>
+            )}
           </header>
 
           {businesses.length === 0 ? (

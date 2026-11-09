@@ -92,8 +92,21 @@ export async function cancelSubscription() {
         body: JSON.stringify({ status: "cancelled" }),
       });
     }
-    subscription.status = "cancelled";
-    subscription.cancelledAt = new Date();
+    const trialStillValid = subscription.trialEndsAt.getTime() > Date.now();
+    const hasPaidPlan = Boolean(subscription.billingInterval && typeof subscription.amountCents === "number");
+    if (trialStillValid && !hasPaidPlan) {
+      // Cancelar o checkout pendente não deve consumir nem encerrar o teste grátis.
+      subscription.status = "trialing";
+      subscription.providerSubscriptionId = undefined;
+      subscription.provider = "none";
+      subscription.pendingBillingInterval = undefined;
+      subscription.pendingAdditionalBusinesses = undefined;
+      subscription.pendingAmountCents = undefined;
+      subscription.cancelledAt = undefined;
+    } else {
+      subscription.status = "cancelled";
+      subscription.cancelledAt = new Date();
+    }
     await subscription.save();
     revalidatePath("/dashboard/assinatura");
     redirect("/dashboard/assinatura?cancelado=1");
